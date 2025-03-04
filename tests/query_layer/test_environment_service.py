@@ -1,6 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
-from typing import Dict, Any
+from unittest.mock import MagicMock
 
 from services.EnvironmentService import EnvironmentService
 from services.BaseQuery import BaseQuery
