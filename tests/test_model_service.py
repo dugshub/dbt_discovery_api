@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.ModelService import ModelService
-from services.BaseQuery import BaseQuery
-from models import Model, ModelDefinition, ModelHistoricalRun
+from src.services.ModelService import ModelService
+from src.services.BaseQuery import BaseQuery
+from src.models import Model, ModelDefinition, ModelHistoricalRun
 
 
 class TestModelService(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestModelService(unittest.TestCase):
         self.test_model_name = "test_model"
         self.test_limit = 100
 
-    @patch('services.ModelService.Operation')
+    @patch('src.services.ModelService.Operation')
     def test_add_model_common_fields(self, mock_operation):
         """Test that _add_model_common_fields adds the expected fields."""
         mock_model = MagicMock()
@@ -42,7 +42,7 @@ class TestModelService(unittest.TestCase):
         mock_model.meta.assert_called_once()
         mock_model.file_path.assert_called_once()
 
-    @patch('services.ModelService.Operation')
+    @patch('src.services.ModelService.Operation')
     def test_add_model_applied_fields(self, mock_operation):
         """Test that _add_model_applied_fields adds the expected fields."""
         mock_model = MagicMock()
@@ -58,7 +58,7 @@ class TestModelService(unittest.TestCase):
         # access in try/except blocks, it's hard to test reliably without mocking the entire schema
         self.assertTrue(True)
 
-    @patch('services.ModelService.Operation')
+    @patch('src.services.ModelService.Operation')
     def test_add_model_definition_fields(self, mock_operation):
         """Test that _add_model_definition_fields adds the expected fields."""
         mock_model = MagicMock()

@@ -1,8 +1,8 @@
 from typing import List, Dict, Optional, Union, Any
 from sgqlc.operation import Operation
-from services.BaseQuery import BaseQuery
-from models import Model, ModelDefinition, ModelHistoricalRun
-from schema.schema import DefinitionResourcesFilter
+from src.services.BaseQuery import BaseQuery
+from src.models import Model, ModelDefinition, ModelHistoricalRun
+from src.schema.schema import DefinitionResourcesFilter
 
 
 class ModelService:

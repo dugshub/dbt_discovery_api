@@ -2,9 +2,9 @@ import os
 import pytest
 from typing import Optional
 
-from services.BaseQuery import BaseQuery
-from services.ModelService import ModelService
-from models import Model, ModelDefinition, ModelHistoricalRun
+from src.services.BaseQuery import BaseQuery
+from src.services.ModelService import ModelService
+from src.models import Model, ModelDefinition, ModelHistoricalRun
 
 
 @pytest.fixture

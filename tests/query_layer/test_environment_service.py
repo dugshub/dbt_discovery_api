@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
 
-from services.EnvironmentService import EnvironmentService
-from services.BaseQuery import BaseQuery
+from src.services.EnvironmentService import EnvironmentService
+from src.services.BaseQuery import BaseQuery
 
 
 @pytest.fixture
