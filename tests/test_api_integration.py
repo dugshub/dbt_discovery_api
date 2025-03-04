@@ -180,3 +180,42 @@ def test_get_models_with_runtime(api, environment_id):
         assert model_with_execution.execution_time > 0
         assert model_with_execution.last_run_status is not None
         assert model_with_execution.most_recent_run is not None
+
+
+def test_get_models_with_runtime_sorting_and_limit(api, environment_id):
+    """Test sorting and limit functionality for models with runtime metrics."""
+    project = api.project(environment_id)
+    
+    # Skip the test if we don't have enough models with execution_time
+    all_models = project.get_models_with_runtime()
+    models_with_execution_time = [m for m in all_models if m.execution_time is not None]
+    
+    if len(models_with_execution_time) < 2:
+        pytest.skip("Need at least 2 models with execution_time for sorting test")
+    
+    # Test descending order (default)
+    models_desc = project.get_models_with_runtime(descending=True)
+    models_with_times_desc = [m for m in models_desc if m.execution_time is not None]
+    
+    if len(models_with_times_desc) >= 2:
+        # Check if models are sorted by execution_time in descending order
+        for i in range(len(models_with_times_desc) - 1):
+            assert models_with_times_desc[i].execution_time >= models_with_times_desc[i+1].execution_time
+    
+    # Test ascending order
+    models_asc = project.get_models_with_runtime(descending=False)
+    models_with_times_asc = [m for m in models_asc if m.execution_time is not None]
+    
+    if len(models_with_times_asc) >= 2:
+        # Check if models are sorted by execution_time in ascending order
+        for i in range(len(models_with_times_asc) - 1):
+            assert models_with_times_asc[i].execution_time <= models_with_times_asc[i+1].execution_time
+    
+    # Test limit
+    limit = 2  # Use a small limit for testing
+    models_limited = project.get_models_with_runtime(limit=limit)
+    assert len(models_limited) == limit
+    
+    # Verify the limited results are the same as the first 'limit' items from the full results
+    for i in range(limit):
+        assert models_limited[i].name == models_desc[i].name

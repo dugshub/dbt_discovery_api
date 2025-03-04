@@ -281,3 +281,43 @@ def test_get_models_with_runtime(project, mock_model_service):
         # Check runtime metrics structure
         assert hasattr(model.runtime_metrics, 'execution_info')
         assert model.runtime_metrics.execution_info.get('execution_time') == 10.5
+
+
+def test_get_models_with_runtime_sorting_and_limit(project, mock_model_service):
+    """Test getting models with runtime metrics with sorting and limit."""
+    # Set up models with different execution times
+    models = mock_model_service.get_models_applied.return_value
+    models[0].execution_info = {
+        'last_run_id': 'run1',
+        'last_run_status': 'success',
+        'execution_time': 5.5,  # Lower runtime
+        'run_generated_at': datetime.now()
+    }
+    models[1].execution_info = {
+        'last_run_id': 'run2',
+        'last_run_status': 'success',
+        'execution_time': 15.5,  # Higher runtime
+        'run_generated_at': datetime.now()
+    }
+    
+    # Test descending order (default)
+    models_with_runtime = project.get_models_with_runtime()
+    assert len(models_with_runtime) == 2
+    assert models_with_runtime[0].execution_time == 15.5  # Higher runtime first
+    assert models_with_runtime[1].execution_time == 5.5   # Lower runtime second
+    
+    # Test ascending order
+    models_with_runtime = project.get_models_with_runtime(descending=False)
+    assert len(models_with_runtime) == 2
+    assert models_with_runtime[0].execution_time == 5.5   # Lower runtime first
+    assert models_with_runtime[1].execution_time == 15.5  # Higher runtime second
+    
+    # Test limit
+    models_with_runtime = project.get_models_with_runtime(limit=1)
+    assert len(models_with_runtime) == 1
+    assert models_with_runtime[0].execution_time == 15.5  # Only includes the highest runtime
+    
+    # Test limit with ascending order
+    models_with_runtime = project.get_models_with_runtime(descending=False, limit=1)
+    assert len(models_with_runtime) == 1
+    assert models_with_runtime[0].execution_time == 5.5   # Only includes the lowest runtime

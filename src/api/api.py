@@ -128,7 +128,7 @@ class Project:
         # Convert to API models using model_validate
         return [RunStatus.model_validate(run) for run in service_runs]
     
-    def get_models_with_runtime(self, refresh: bool = False) -> List[ModelWithRuntime]:
+    def get_models_with_runtime(self, refresh: bool = False, descending: bool = True, limit: int = 0) -> List[ModelWithRuntime]:
         """
         Get all models in the project with their runtime metrics.
         
@@ -137,6 +137,8 @@ class Project:
         
         Args:
             refresh: Force refresh of model cache
+            descending: Sort by runtime in descending order if True, ascending if False
+            limit: Maximum number of models to return (0 means no limit)
             
         Returns:
             List of typed ModelWithRuntime objects containing metadata and runtime metrics
@@ -180,6 +182,16 @@ class Project:
             )
             
             result.append(model_with_runtime)
+        
+        # Sort by execution_time
+        result.sort(
+            key=lambda m: (m.runtime_metrics.execution_info.get('execution_time') or 0),
+            reverse=descending
+        )
+        
+        # Apply limit if specified
+        if limit > 0:
+            result = result[:limit]
             
         return result
     
