@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field
 
 class ModelBase(BaseModel):
     """Base model for all dbt-tools models."""
-    pass
+    
+    class Config:
+        orm_mode = True  # Enable ORM mode for all derived models
 
 
 class Model(ModelBase):

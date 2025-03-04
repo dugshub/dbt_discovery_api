@@ -1,14 +1,17 @@
 # dbt Discovery API
 
-A Python service layer for interacting with the dbt Cloud Metadata API. This library provides a clean, typed interface for retrieving and analyzing metadata from dbt Cloud environments.
+A Python service layer and user-friendly API for interacting with the dbt Cloud Metadata API. This library provides a clean, typed interface for retrieving and analyzing metadata from dbt Cloud environments.
 
 ## Features
 
+- **User-Friendly API Layer**: Simple, intuitive access to dbt Cloud resources
+- **Service Layer**: Low-level access to GraphQL API with type safety
 - **Environment Exploration**: Query environment details and retrieve all models in an environment
-- **Model Analysis**: Examine model dependencies, lineage, and SQL definitions
+- **Model Analysis**: Examine model metadata, historical runs, and properties
 - **Data Validation**: Type-safe responses using Pydantic models
-- **Flexible Filtering**: Filter models by materialization type, tags, and other properties
-- **Dependency Tracking**: Analyze upstream and downstream dependencies for any model
+- **Caching**: Efficient caching to minimize API calls
+- **Computed Properties**: Easy access to derived data that spans multiple service calls
+- **Lazy Loading**: Properties are loaded on-demand for better performance
 
 ## Installation
 
@@ -24,106 +27,133 @@ Set your dbt Cloud API token as an environment variable:
 export DBT_SERVICE_TOKEN="your_dbt_cloud_token"
 ```
 
-Alternatively, you can pass the token directly to service constructors.
+Alternatively, you can pass the token directly when initializing the API.
 
 ## Usage Examples
 
-### Exploring an Environment
+### Using the API Layer (Recommended)
 
 ```python
-from src.services.EnvironmentService import EnvironmentService
+from src.api import DiscoveryAPI
 
-# Create environment service with your environment ID
-env_service = EnvironmentService(environment_id=123)
+# Initialize the API
+api = DiscoveryAPI(token="your_dbt_cloud_token")
 
-# Get environment details
-env_details = env_service.get_environment_details()
-print(f"Environment: {env_details.name}")
+# Get project
+project = api.project(environment_id=123456)
 
-# Get all models in the environment
-models = env_service.get_models()
+# Get project metadata
+metadata = project.get_metadata()
+print(f"Project name: {metadata.dbt_project_name}")
+print(f"Adapter type: {metadata.adapter_type}")
+
+# Get all models
+models = project.get_models()
 print(f"Found {len(models)} models")
 
-# Filter models by materialization type
-table_models = env_service.get_models(materialized_types=["table"])
-print(f"Found {len(table_models)} table models")
+# Get specific model
+model = project.get_model("my_model")
 
-# Filter models by tag
-tagged_models = env_service.get_models(tags=["finance"])
-print(f"Found {len(tagged_models)} finance models")
+# Access model properties
+print(f"Model: {model.metadata.name}")
+print(f"Database: {model.metadata.database}")
+print(f"Schema: {model.metadata.schema}")
+print(f"Tags: {', '.join(model.metadata.tags)}")
+print(f"Last run status: {model.last_run.status if model.last_run else 'No runs'}")
+
+# Get historical runs
+runs = model.get_historical_runs(limit=10)
+for run in runs:
+    print(f"Run status: {run.status}, Time: {run.run_time}")
+
+# Convert model to dictionary
+model_dict = model.to_dict()
 ```
 
-### Analyzing Model Lineage
+### Using the Service Layer (Advanced)
 
 ```python
+from src.services.BaseQuery import BaseQuery
+from src.services.EnvironmentService import EnvironmentService
 from src.services.ModelService import ModelService
 
-# Create model service with model unique ID and environment ID
-model_service = ModelService(
-    unique_id="model.project.model_name",
-    environment_id=123
+# Create base query with your token
+base_query = BaseQuery(token="your_dbt_cloud_token")
+
+# Create services
+env_service = EnvironmentService(base_query)
+model_service = ModelService(base_query)
+
+# Get environment metadata
+env_metadata = env_service.get_environment_metadata(environment_id=123456)
+print(f"Project name: {env_metadata['dbt_project_name']}")
+
+# Get models
+models = model_service.get_models_applied(environment_id=123456)
+print(f"Found {len(models)} models")
+
+# Get specific model
+model = model_service.get_model_by_name(
+    environment_id=123456,
+    model_name="my_model",
+    state="applied"
 )
+print(f"Model: {model.name}")
 
-# Get model details
-model_details = model_service.get_model_details()
-print(f"Model: {model_details.name}")
-
-# Get upstream dependencies
-upstream = model_service.get_upstream_models()
-print(f"Model depends on {len(upstream)} upstream models")
-
-# Get downstream dependencies
-downstream = model_service.get_downstream_models()
-print(f"Model is used by {len(downstream)} downstream models")
-
-# Print dependency tree
-for model in upstream:
-    print(f"  - {model.unique_id}")
-```
-
-### Retrieving Model SQL
-
-```python
-from src.services.ModelService import ModelService
-
-model_service = ModelService(
-    unique_id="model.project.model_name",
-    environment_id=123
+# Get model historical runs
+runs = model_service.get_model_historical_runs(
+    environment_id=123456,
+    model_name="my_model",
+    last_run_count=5
 )
-
-# Get raw SQL
-raw_sql = model_service.get_raw_sql()
-print(f"Raw SQL length: {len(raw_sql)}")
-
-# Get compiled SQL
-compiled_sql = model_service.get_compiled_sql()
-print(f"Compiled SQL length: {len(compiled_sql)}")
+for run in runs:
+    print(f"Status: {run.status}, Time: {run.run_generated_at}")
 ```
 
 ## Architecture
 
-The library is organized into several key components:
+The library is organized into two main layers:
 
+### API Layer (High-Level)
+- **DiscoveryAPI**: Main entry point for the API layer
+- **Project**: Represents a dbt project with access to resources
+- **Model**: Represents a dbt model with properties
+- **Pydantic Models**: API-specific models with conversion from service layer models
+
+### Service Layer (Low-Level)
 - **BaseQuery**: Foundation class for GraphQL interactions with the dbt Cloud API
-- **EnvironmentService**: Service for environment-level operations and model discovery
-- **ModelService**: Service for model-specific operations and lineage analysis
+- **EnvironmentService**: Service for environment-level operations
+- **ModelService**: Service for model-specific operations
 - **Pydantic Models**: Type-safe data structures for API responses
 
 ## Technical Details
 
 - **GraphQL**: Uses the `sgqlc` library to interact with dbt Cloud's GraphQL API
-- **Authentication**: Bearer token authentication via HTTP headers
-- **Data Validation**: Pydantic models ensure type safety and data validation
-- **Error Handling**: Comprehensive error handling for API interactions
+- **Type Safety**: Pydantic v2 models ensure type safety and data validation
+- **ORM Mode**: Uses Pydantic's `from_attributes` feature for model conversion
+- **Caching**: Implements caching strategies to minimize service calls
+- **Lazy Loading**: Properties that require service calls are loaded on-demand
 
 ## Development
 
-When extending this service layer:
+When extending this library:
 
-1. Add new query templates to `BaseQuery` for reusable operations
-2. Create specialized services for new resource types following the pattern of `EnvironmentService` and `ModelService`
-3. Define Pydantic models in `models.py` for any new data structures
-4. Maintain consistent error handling and documentation
+1. For new features, start by extending the service layer
+2. Create corresponding API layer classes to provide a user-friendly interface
+3. Enable ORM mode in service models for easy conversion to API models
+4. Add computed properties for data that spans multiple service models
+5. Implement proper caching to minimize service calls
+6. Add comprehensive tests for both layers
+
+### Running Tests
+
+```bash
+# Run unit tests
+pytest tests/test_api_models.py tests/test_api_classes.py
+
+# Run integration tests (requires API token)
+pytest tests/test_api_integration.py --run-integration
+```
 
 ## API Limitations
 

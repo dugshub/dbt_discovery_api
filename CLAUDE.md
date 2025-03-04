@@ -15,6 +15,9 @@ mypy .
 pytest -xvs tests/
 ```
 
+# Reading Files
+- Don't read src/schema/schema.py unless absolutely critical - it's a very large file and most of it is already imported/referenced in other files
+
 ## Code Style Guidelines
 - **Python Version**: 3.12+
 - **Types**: Always use type annotations for function parameters and return values

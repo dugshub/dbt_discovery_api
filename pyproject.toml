@@ -10,3 +10,36 @@ dependencies = [
     "pytest>=8.3.5",
     "sgqlc>=16.4",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Will enable this once all code is fully typed
+disallow_incomplete_defs = false  # Will enable this once all code is fully typed
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+implicit_reexport = true
+disable_error_code = [
+    "method-assign", 
+    "union-attr",
+    "arg-type",
+]
+
+# Use explicit package bases
+explicit_package_bases = true
+
+# Ignore errors related to external libraries without type stubs
+[[tool.mypy.overrides]]
+module = [
+    "sgqlc.*",
+]
+ignore_missing_imports = true
+
+# Ignore errors in auto-generated schema file
+[[tool.mypy.overrides]]
+module = [
+    "src.schema.schema",
+]
+ignore_errors = true

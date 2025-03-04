@@ -1,0 +1,143 @@
+"""
+Integration tests for the API layer.
+
+These tests require a valid DBT Cloud API token and will make actual API calls.
+Run with: pytest -xvs tests/test_api_integration.py --run-integration
+"""
+
+import os
+import pytest
+
+from src.api import DiscoveryAPI
+
+
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def api():
+    """Create a real DiscoveryAPI instance for testing."""
+    token = os.environ.get("DBT_SERVICE_TOKEN")
+    if not token:
+        pytest.skip("DBT_SERVICE_TOKEN environment variable not set")
+    
+    return DiscoveryAPI(token=token)
+
+
+@pytest.fixture
+def environment_id():
+    """Get a test environment ID from environment variables."""
+    env_id = os.environ.get("ENV_ID_SANDBOX_PRODUCTION")
+    if not env_id:
+        pytest.skip("ENV_ID_SANDBOX_PRODUCTION environment variable not set")
+    
+    return int(env_id)
+
+
+def test_api_project_connection(api, environment_id):
+    """Test connecting to a project."""
+    project = api.project(environment_id)
+    assert project is not None
+    assert project.environment_id == environment_id
+
+
+def test_project_metadata(api, environment_id):
+    """Test getting project metadata."""
+    project = api.project(environment_id)
+    metadata = project.get_metadata()
+    
+    assert metadata.dbt_project_name is not None
+    assert metadata.adapter_type is not None
+    assert metadata.environment_id == environment_id
+
+
+def test_project_get_models(api, environment_id):
+    """Test getting all models in a project."""
+    project = api.project(environment_id)
+    models = project.get_models()
+    
+    assert len(models) > 0
+    
+    # Check a few model properties
+    first_model = models[0]
+    assert first_model.metadata.name is not None
+    assert first_model.metadata.unique_id is not None
+
+
+def test_project_get_model(api, environment_id):
+    """Test getting a specific model.
+    
+    This test depends on having a model with a specific name in your environment.
+    Adjust the model_name to match a model in your environment.
+    """
+    project = api.project(environment_id)
+    models = project.get_models()
+    
+    # Use the name of the first model for testing
+    if not models:
+        pytest.skip("No models available in the environment")
+    
+    model_name = models[0].metadata.name
+    model = project.get_model(model_name)
+    
+    assert model is not None
+    assert model.metadata.name == model_name
+
+
+def test_model_properties(api, environment_id):
+    """Test model properties."""
+    project = api.project(environment_id)
+    models = project.get_models()
+    
+    if not models:
+        pytest.skip("No models available in the environment")
+    
+    # Get the first model
+    model = models[0]
+    
+    # Test metadata
+    assert model.metadata is not None
+    assert model.metadata.name is not None
+    assert model.metadata.unique_id is not None
+    
+    # Test last_run (may be None if model has never been run)
+    # Just checking that the property accessor works, not the actual value
+    _ = model.last_run
+    
+    # Test to_dict
+    model_dict = model.to_dict()
+    assert model_dict is not None
+    assert model_dict["name"] == model.metadata.name
+
+
+def test_model_historical_runs(api, environment_id):
+    """Test getting historical runs for a model."""
+    project = api.project(environment_id)
+    models = project.get_models()
+    
+    if not models:
+        pytest.skip("No models available in the environment")
+    
+    # Try to find a model with at least one run
+    model_with_runs = None
+    for model in models:
+        if model.last_run is not None:
+            model_with_runs = model
+            break
+    
+    if not model_with_runs:
+        pytest.skip("No models with historical runs available")
+    
+    # Get historical runs
+    model_name = model_with_runs.metadata.name
+    runs = project.get_model_historical_runs(model_name, limit=5)
+    
+    assert len(runs) > 0
+    
+    # Check run properties
+    first_run = runs[0]
+    # Check status instead of run_id as it appears run_id might not always be present
+    assert first_run.status is not None
+    # Check that either run_time or execution_time is available to confirm it's a valid run
+    assert first_run.run_time is not None or first_run.execution_time is not None
