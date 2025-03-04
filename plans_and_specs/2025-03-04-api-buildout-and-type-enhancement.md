@@ -3,6 +3,13 @@
 ## Overview
 The API layer provides a user-friendly interface on top of the service layer, abstracting away the complexity of GraphQL queries and data transformations. It offers logical, intuitive access to dbt Cloud resources.
 
+## Implementation Strategy
+
+1. Enable ORM mode in existing service layer models
+2. Create API-specific Pydantic models for user-facing interfaces
+3. Use `from_orm` to convert service models to API models
+4. Add computed properties for data that spans multiple service models
+
 ## Pydantic Data Types
 
 ```python
@@ -21,6 +28,9 @@ class ModelMetadata(BaseModel):
     description: Optional[str] = None
     materialized: str
     tags: List[str] = Field(default_factory=list)
+    
+    class Config:
+        orm_mode = True  # Enable ORM mode for conversion from service models
 
 class RunStatus(BaseModel):
     """Run status information"""
@@ -29,6 +39,9 @@ class RunStatus(BaseModel):
     run_time: datetime
     execution_time: Optional[float] = None
     error_message: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
 
 class ProjectMetadata(BaseModel):
     """Project metadata information"""
@@ -37,6 +50,9 @@ class ProjectMetadata(BaseModel):
     environment_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    
+    class Config:
+        orm_mode = True
 ```
 
 ## Core Classes
@@ -47,29 +63,22 @@ class DiscoveryAPI:
     """Main entry point for the API layer"""
     
     def __init__(self, token: str = None, endpoint: str = "https://metadata.cloud.getdbt.com/graphql"):
-        """Initialize with authentication token and endpoint."""
-        self._token = token
-        self._endpoint = endpoint
         # Initialize service layer components
         self._environment_service = EnvironmentService(token, endpoint)
         self._model_service = ModelService(token, endpoint)
         # Future services will be added here
-        # self._job_service = JobService(token, endpoint)
-        # self._test_service = TestService(token, endpoint)
     
     def project(self, environment_id: int) -> 'Project':
-        """Get a project by environment ID."""
-        # Validate the environment exists via service layer
+        # Validate the environment exists
         environment = self._environment_service.get_environment(environment_id)
         if not environment:
             raise ValueError(f"Environment with ID {environment_id} not found")
         
-        # Return a Project instance with access to the services
+        # Return a Project instance
         return Project(
             environment_id=environment_id,
             environment_service=self._environment_service,
             model_service=self._model_service
-            # Add other services as they become available
         )
 ```
 
@@ -78,51 +87,40 @@ class DiscoveryAPI:
 class Project:
     """Represents a dbt project with access to all resources"""
     
-    def __init__(self, environment_id: int, environment_service: EnvironmentService, 
-                 model_service: ModelService):
-        """Initialize with environment ID and service layer components."""
+    def __init__(self, environment_id: int, environment_service, model_service):
         self.environment_id = environment_id
         self._environment_service = environment_service
         self._model_service = model_service
-        # Cache for models to avoid repeated service calls
         self._models_cache = None
     
     def get_metadata(self) -> ProjectMetadata:
-        """Get project metadata."""
-        # Use environment service to fetch metadata
+        # Get environment data
         environment = self._environment_service.get_environment(self.environment_id)
-        return ProjectMetadata(
-            dbt_project_name=environment.dbt_project_name,
-            adapter_type=environment.adapter_type,
-            environment_id=self.environment_id,
-            created_at=environment.created_at,
-            updated_at=environment.updated_at
-        )
+        
+        # Convert to API model using from_orm
+        return ProjectMetadata.from_orm(environment)
     
     def get_models(self, refresh: bool = False) -> List['Model']:
-        """Get all models in the project."""
         # Use cache unless refresh is requested
         if self._models_cache is None or refresh:
             # Get models from service layer
             service_models = self._model_service.get_models_applied(self.environment_id)
-            # Transform service models to API models
+            
+            # Transform to API models
             self._models_cache = [
-                Model(
-                    project=self,
-                    model_data=model
-                ) for model in service_models
+                Model(project=self, model_data=model)
+                for model in service_models
             ]
         return self._models_cache
     
     def get_model(self, model_name: str) -> 'Model':
-        """Get a specific model by name."""
         # First check cache if available
         if self._models_cache:
             model = next((m for m in self._models_cache if m.metadata.name == model_name), None)
             if model:
                 return model
         
-        # If not in cache or cache not initialized, fetch directly
+        # If not in cache, fetch directly
         service_model = self._model_service.get_model_by_name(
             self.environment_id, model_name, state="applied"
         )
@@ -133,29 +131,20 @@ class Project:
         return Model(project=self, model_data=service_model)
     
     def get_model_historical_runs(self, model_name: str, limit: int = 5) -> List[RunStatus]:
-        """Get historical runs for a specific model."""
-        # Use model service to fetch historical runs
-        runs = self._model_service.get_model_historical_runs(
+        # Get runs from service layer
+        service_runs = self._model_service.get_model_historical_runs(
             self.environment_id, model_name, limit=limit
         )
         
-        # Transform to user-friendly format
-        return [RunStatus(
-            status=run.status,
-            run_id=run.run_id,
-            run_time=run.run_time,
-            execution_time=run.execution_time,
-            error_message=run.error_message
-        ) for run in runs]
+        # Convert to API models using from_orm
+        return [RunStatus.from_orm(run) for run in service_runs]
     
     # Future methods
     def get_tests(self) -> List['Test']:
-        """Get all tests in the project."""
         # Will be implemented when TestService is available
         pass
     
     def get_jobs(self) -> List['Job']:
-        """Get all jobs in the project."""
         # Will be implemented when JobService is available
         pass
 ```
@@ -166,7 +155,6 @@ class Model:
     """Represents a dbt model with properties"""
     
     def __init__(self, project: Project, model_data: Any):
-        """Initialize with reference to parent project and model data."""
         self._project = project
         self._model_data = model_data
         # Cache computed properties
@@ -177,15 +165,8 @@ class Model:
     def metadata(self) -> ModelMetadata:
         """Get model metadata."""
         if self._metadata is None:
-            self._metadata = ModelMetadata(
-                name=self._model_data.name,
-                unique_id=self._model_data.unique_id,
-                database=self._model_data.database,
-                schema=self._model_data.schema,
-                description=self._model_data.description,
-                materialized=self._model_data.materialized,
-                tags=self._model_data.tags
-            )
+            # Convert service model to API model using from_orm
+            self._metadata = ModelMetadata.from_orm(self._model_data)
         return self._metadata
     
     @property
@@ -194,10 +175,7 @@ class Model:
         if self._last_run is None:
             # Get historical runs from project
             runs = self._project.get_model_historical_runs(self.metadata.name, limit=1)
-            if runs:
-                self._last_run = runs[0]
-            else:
-                self._last_run = None
+            self._last_run = runs[0] if runs else None
         return self._last_run
     
     def get_historical_runs(self, limit: int = 5) -> List[RunStatus]:
@@ -213,7 +191,6 @@ class Model:
             "schema": self.metadata.schema,
             "description": self.metadata.description,
             "last_run": self.last_run.dict() if self.last_run else None,
-            # Add other relevant properties
         }
 ```
 
@@ -228,6 +205,8 @@ project = api.project(environment_id=123456)
 
 # Get project metadata
 metadata = project.get_metadata()
+print(f"Project name: {metadata.dbt_project_name}")
+print(f"Adapter type: {metadata.adapter_type}")
 
 # Get all models
 models = project.get_models()
@@ -246,11 +225,63 @@ runs = model.get_historical_runs(limit=10)
 
 ## Implementation Notes
 
-1. The API layer should handle all error cases gracefully, providing clear error messages.
-2. Caching strategies should be implemented to minimize service calls.
-3. All properties should be lazy-loaded when possible to improve performance.
-4. Future extensions should include:
-   - Test management
-   - Job scheduling and monitoring
-   - Source management
-   - Lineage exploration
+### Service Layer Updates
+
+Update the existing service layer models in `src/models.py` to enable ORM mode:
+
+```python
+class ModelBase(BaseModel):
+    """Base model for all dbt-tools models."""
+    
+    class Config:
+        orm_mode = True  # Enable ORM mode for all derived models
+```
+
+### Testing Strategy
+
+1. **Service Layer Tests**
+   ```python
+   def test_model_orm_mode():
+       """Test that service models work with ORM mode."""
+       model = Model(name="test_model", unique_id="model.test.test_model")
+       model_dict = model.dict()
+       new_model = Model.parse_obj(model_dict)
+       assert new_model.name == model.name
+   ```
+
+2. **API Model Tests**
+   ```python
+   def test_api_model_from_service_model():
+       """Test creating API model from service model using from_orm."""
+       service_model = Model(name="test_model", unique_id="model.test.test_model")
+       api_model = ModelMetadata.from_orm(service_model)
+       assert api_model.name == service_model.name
+   ```
+
+3. **API Layer Tests**
+   ```python
+   def test_api_get_model():
+       """Test getting a model through the API layer."""
+       api = DiscoveryAPI(token="test_token")
+       project = api.project(environment_id=123)
+       model = project.get_model("test_model")
+       assert model.metadata.name == "test_model"
+   ```
+
+### Risks and Mitigations
+
+1. **Risk**: Field name mismatches between service and API models
+   **Mitigation**: Ensure API model field names match service model field names for direct properties
+
+2. **Risk**: Performance impact from model conversion
+   **Mitigation**: Implement caching strategies to minimize conversions
+
+3. **Risk**: Complexity in handling computed fields
+   **Mitigation**: Keep computed field logic simple and well-documented
+
+### Best Practices
+
+1. Handle all error cases gracefully with clear error messages
+2. Implement caching to minimize service calls
+3. Use lazy-loading for properties that require additional service calls
+4. Maintain clear separation between service and API layers
