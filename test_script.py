@@ -1,5 +1,4 @@
 import os
-import sys
 
 # Simple test script to verify file writing
 output_file = 'demo.md'

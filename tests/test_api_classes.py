@@ -8,9 +8,6 @@ from datetime import datetime
 
 from src.models import Model, ModelHistoricalRun
 from src.api import DiscoveryAPI
-from src.services.BaseQuery import BaseQuery
-from src.services.EnvironmentService import EnvironmentService
-from src.services.ModelService import ModelService
 
 
 @pytest.fixture
@@ -238,3 +235,49 @@ def test_model_to_dict(project):
     assert model_dict["schema"] == "public"
     assert model_dict["description"] == "Test model 1"
     assert "last_run" in model_dict and isinstance(model_dict["last_run"], dict)
+
+
+def test_get_models_with_runtime(project, mock_model_service):
+    """Test getting models with runtime metrics."""
+    # Add execution_info to the models
+    for model in mock_model_service.get_models_applied.return_value:
+        model.execution_info = {
+            'last_run_id': 'run1',
+            'last_run_status': 'success',
+            'execution_time': 10.5,
+            'run_generated_at': datetime.now()
+        }
+    
+    # Call the method
+    models_with_runtime = project.get_models_with_runtime()
+    
+    # Verify model service was called correctly
+    mock_model_service.get_models_applied.assert_called_with(12345)
+    # Should not call get_model_historical_runs anymore
+    mock_model_service.get_model_historical_runs.assert_not_called()
+    
+    # Verify the result structure
+    assert len(models_with_runtime) == 2
+    assert all(hasattr(m, 'name') for m in models_with_runtime)
+    assert all(hasattr(m, 'unique_id') for m in models_with_runtime)
+    assert all(hasattr(m, 'metadata') for m in models_with_runtime)
+    assert all(hasattr(m, 'runtime_metrics') for m in models_with_runtime)
+    
+    # Check the computed fields
+    for model in models_with_runtime:
+        # Check execution_time property
+        assert hasattr(model, 'execution_time')
+        assert model.execution_time == 10.5
+        
+        # Check last_run_status property
+        assert hasattr(model, 'last_run_status')
+        assert model.last_run_status == 'success'
+        
+        # Check most_recent_run via computed property
+        assert model.most_recent_run is not None
+        assert isinstance(model.most_recent_run, dict)
+        assert "status" in model.most_recent_run
+            
+        # Check runtime metrics structure
+        assert hasattr(model.runtime_metrics, 'execution_info')
+        assert model.runtime_metrics.execution_info.get('execution_time') == 10.5

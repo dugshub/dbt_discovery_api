@@ -1,7 +1,86 @@
 # DBT Discovery API Layer Plan
 
+
+----- Model Runtime Averages ----- 
 ## Overview
 The API layer provides a user-friendly interface on top of the service layer, abstracting away the complexity of GraphQL queries and data transformations. It offers logical, intuitive access to dbt Cloud resources.
+
+## Models API Enhancement: Runtime by Project
+
+### Feature Requirements
+Add functionality to retrieve all models and their runtime metrics by project:
+- Average run time for last N runs
+- Most recent run details
+- Complete list of last N runs for each model
+
+### Current State Analysis
+1. **Service Layer**:
+   - `ModelService.get_models_applied()` retrieves all models for an environment
+   - `ModelService.get_model_historical_runs()` retrieves historical runs for a specific model
+
+2. **API Layer**:
+   - `Project.get_models()` returns all models in a project
+   - `Model.get_historical_runs()` gets run history for a single model
+   - No existing method to get runtime metrics for all models in a project at once
+
+### Implementation Plan
+
+#### 1. Add Helper Method to API Layer
+Create a new method in the `Project` class to process and aggregate runtime data:
+
+```python
+def get_models_with_runtime(self, last_n_runs: int = 5, refresh: bool = False) -> List[Dict[str, Any]]:
+    """
+    Get all models in the project with their runtime metrics.
+    
+    Args:
+        last_n_runs: Number of historical runs to analyze
+        refresh: Force refresh of model cache
+        
+    Returns:
+        List of models with runtime metrics (name, metadata, average_runtime, 
+        most_recent_run, historical_runs)
+    """
+```
+
+#### 2. Implementation Approach
+1. Leverage existing `get_models()` method to retrieve all models
+2. For each model, fetch historical runs using `get_model_historical_runs()`
+3. Calculate metrics (average runtime, last run details)
+4. Return structured data with all required metrics
+
+#### 3. Data Structure
+Return a list of dictionaries with:
+- Model metadata (name, unique_id, etc.)
+- Average runtime (calculated from historical runs)
+- Most recent run (detailed info on last execution)
+- Historical runs (complete list of last N runs)
+
+#### 4. Optional Optimization
+- Consider adding batch fetching capability to `ModelService` to reduce API calls
+- Implement caching to minimize redundant API requests
+
+#### 5. Example Usage
+```python
+# Get all models with runtime metrics for a project
+api = DiscoveryAPI(token="your_token")
+project = api.project(environment_id=123)
+models_with_runtime = project.get_models_with_runtime(last_n_runs=10)
+
+----- Existing Plan -----
+
+# Process and display results
+for model in models_with_runtime:
+    print(f"Model: {model['name']}")
+    print(f"Average Runtime: {model['average_runtime']}s")
+    print(f"Last Run Status: {model['most_recent_run']['status']}")
+```
+
+### Additional Considerations
+- This implementation maintains separation of concerns - API layer for data transformation, Service layer for API interaction
+- No changes needed to Service layer
+- Method will be efficient by leveraging existing caching mechanisms
+- Implementation can scale to handle large projects with many models
 
 ## Implementation Strategy
 

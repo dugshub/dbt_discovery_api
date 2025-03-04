@@ -6,7 +6,6 @@ This demonstrates using the high-level API layer instead of raw GraphQL queries.
 
 import os
 import json
-from pprint import pprint
 from src.api import DiscoveryAPI
 
 # Utility function for formatted printing

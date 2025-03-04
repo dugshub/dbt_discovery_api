@@ -4,7 +4,13 @@ Tests for API layer Pydantic models.
 
 from datetime import datetime
 from src.models import Model, ModelHistoricalRun
-from src.api import ModelMetadata, RunStatus, ProjectMetadata
+from src.api import (
+    ModelMetadata, 
+    RunStatus, 
+    ProjectMetadata,
+    ModelRuntimeMetrics,
+    ModelWithRuntime
+)
 
 
 def test_model_orm_mode():
@@ -25,7 +31,7 @@ def test_model_metadata_from_orm():
         materialized_type="table",
         tags=["finance", "daily"],
         database="analytics",
-        db_schema="public",
+        schema="public",  # Use schema parameter, not db_schema
         description="A test model"
     )
     
@@ -87,3 +93,89 @@ def test_project_metadata_from_orm():
     assert project_metadata.environment_id == environment_data["environment_id"]
     assert project_metadata.created_at == environment_data["created_at"]
     assert project_metadata.updated_at == environment_data["updated_at"]
+
+
+def test_model_runtime_metrics():
+    """Test ModelRuntimeMetrics creation with basic data."""
+    # Create a simple run status
+    run = RunStatus(
+        status="success",
+        run_id="12345",
+        run_generated_at=datetime.now(),
+        execution_time=10.5
+    )
+    
+    # Create runtime metrics with execution_info
+    execution_info = {
+        'last_run_id': '12345',
+        'last_run_status': 'success',
+        'execution_time': 10.5,
+        'run_generated_at': datetime.now()
+    }
+    
+    metrics = ModelRuntimeMetrics(
+        most_recent_run=run,
+        execution_info=execution_info
+    )
+    
+    # Validate data
+    assert metrics.most_recent_run.status == "success"
+    assert metrics.most_recent_run.execution_time == 10.5
+    assert metrics.execution_info.get('execution_time') == 10.5
+    assert metrics.execution_info.get('last_run_status') == 'success'
+
+
+def test_model_with_runtime():
+    """Test ModelWithRuntime creation and computed fields."""
+    # Create metadata
+    metadata = ModelMetadata(
+        name="test_model",
+        unique_id="model.test.test_model",
+        database="test_db",
+        db_schema="test_schema",
+        materialized_type="table"
+    )
+    
+    # Create run status
+    run = RunStatus(
+        status="success",
+        run_id="12345",
+        run_generated_at=datetime.now(),
+        execution_time=10.5
+    )
+    
+    # Create execution_info
+    execution_info = {
+        'last_run_id': '12345',
+        'last_run_status': 'success',
+        'execution_time': 10.5,
+        'run_generated_at': datetime.now()
+    }
+    
+    # Create runtime metrics
+    metrics = ModelRuntimeMetrics(
+        most_recent_run=run,
+        execution_info=execution_info
+    )
+    
+    # Create model with runtime
+    model = ModelWithRuntime(
+        name="test_model",
+        unique_id="model.test.test_model",
+        metadata=metadata,
+        runtime_metrics=metrics
+    )
+    
+    # Test core properties
+    assert model.name == "test_model"
+    assert model.unique_id == "model.test.test_model"
+    assert model.metadata.database == "test_db"
+    
+    # Test computed fields
+    assert model.execution_time == 10.5
+    assert model.last_run_status == "success"
+    assert model.most_recent_run is not None
+    assert model.most_recent_run["status"] == "success"
+    
+    # Test direct access to execution_info
+    assert model.runtime_metrics.execution_info.get('execution_time') == 10.5

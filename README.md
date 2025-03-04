@@ -8,6 +8,7 @@ A Python service layer and user-friendly API for interacting with the dbt Cloud 
 - **Service Layer**: Low-level access to GraphQL API with type safety
 - **Environment Exploration**: Query environment details and retrieve all models in an environment
 - **Model Analysis**: Examine model metadata, historical runs, and properties
+- **Performance Metrics**: Retrieve and analyze model runtime statistics across a project
 - **Data Validation**: Type-safe responses using Pydantic models
 - **Caching**: Efficient caching to minimize API calls
 - **Computed Properties**: Easy access to derived data that spans multiple service calls
@@ -68,6 +69,18 @@ for run in runs:
 
 # Convert model to dictionary
 model_dict = model.to_dict()
+
+# Get models with runtime metrics
+models_with_runtime = project.get_models_with_runtime(last_n_runs=5)
+for model in models_with_runtime:
+    print(f"Model: {model.name}")
+    print(f"  Average runtime: {model.average_runtime or 'N/A'} seconds")
+    
+    if model.most_recent_run:
+        print(f"  Last run status: {model.most_recent_run['status']}")
+        print(f"  Last run time: {model.most_recent_run['execution_time']} seconds")
+    
+    print(f"  Historical runs: {len(model.runtime_metrics.historical_runs)}")
 ```
 
 ### Using the Service Layer (Advanced)

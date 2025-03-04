@@ -1,13 +1,14 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ModelBase(BaseModel):
     """Base model for all dbt-tools models."""
     
-    class Config:
-        orm_mode = True  # Enable ORM mode for all derived models
+    model_config = {
+        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
+    }
 
 
 class Model(ModelBase):
@@ -90,3 +91,48 @@ class ModelHistoricalRun(ModelBase):
     depends_on: Optional[List[str]] = None
     parents_models: Optional[List[Dict[str, Any]]] = None
     parents_sources: Optional[List[Dict[str, Any]]] = None
+
+
+# Models for runtime metrics
+class ModelRuntimeMetrics(BaseModel):
+    """Runtime metrics for a model."""
+    most_recent_run: Optional[Union['ModelHistoricalRun', Dict[str, Any]]] = None
+    execution_info: Dict[str, Any] = Field(default_factory=dict)
+    
+    model_config = {
+        "from_attributes": True,
+        "arbitrary_types_allowed": True
+    }
+
+
+class ModelWithRuntime(BaseModel):
+    """Model with its runtime metrics."""
+    name: str
+    unique_id: str
+    metadata: Dict[str, Any]
+    runtime_metrics: ModelRuntimeMetrics
+    
+    model_config = {
+        "from_attributes": True
+    }
+    
+    @computed_field
+    def execution_time(self) -> Optional[float]:
+        """Direct access to execution time from execution_info."""
+        if self.runtime_metrics.execution_info:
+            return self.runtime_metrics.execution_info.get('execution_time')
+        return None
+    
+    @computed_field
+    def most_recent_run(self) -> Optional[Dict[str, Any]]:
+        """Direct access to most recent run for convenience."""
+        if isinstance(self.runtime_metrics.most_recent_run, BaseModel):
+            return self.runtime_metrics.most_recent_run.model_dump()
+        return self.runtime_metrics.most_recent_run
+        
+    @computed_field
+    def last_run_status(self) -> Optional[str]:
+        """Direct access to last run status from execution_info."""
+        if self.runtime_metrics.execution_info:
+            return self.runtime_metrics.execution_info.get('last_run_status')
+        return None

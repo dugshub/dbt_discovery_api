@@ -5,54 +5,17 @@ Provides intuitive access to dbt Cloud resources without the complexity of Graph
 """
 
 from typing import List, Dict, Optional, Any
-from datetime import datetime
-from pydantic import BaseModel, Field
 
 from src.services.BaseQuery import BaseQuery
 from src.services.EnvironmentService import EnvironmentService
 from src.services.ModelService import ModelService
-
-
-# Pydantic models for type safety and validation
-class ModelMetadata(BaseModel):
-    """Model metadata information"""
-    name: str
-    unique_id: str
-    database: Optional[str] = None
-    schema: Optional[str] = Field(default=None, alias="db_schema")  # Use alias to avoid conflict with BaseModel.schema
-    description: Optional[str] = None
-    materialized: Optional[str] = Field(default=None, alias="materialized_type")
-    tags: List[str] = Field(default_factory=list)
-    
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
-
-
-class RunStatus(BaseModel):
-    """Run status information"""
-    status: Optional[str] = None  # success, error, running
-    run_id: Optional[str] = None
-    run_time: Optional[datetime] = Field(default=None, alias="run_generated_at")
-    execution_time: Optional[float] = None
-    error_message: Optional[str] = Field(default=None, alias="error")
-    
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
-
-
-class ProjectMetadata(BaseModel):
-    """Project metadata information"""
-    dbt_project_name: str
-    adapter_type: str
-    environment_id: int
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
+from src.api.models import (
+    ModelMetadata, 
+    RunStatus, 
+    ProjectMetadata,
+    ModelRuntimeMetrics,
+    ModelWithRuntime
+)
 
 
 # API Core Classes
@@ -164,6 +127,61 @@ class Project:
         
         # Convert to API models using model_validate
         return [RunStatus.model_validate(run) for run in service_runs]
+    
+    def get_models_with_runtime(self, refresh: bool = False) -> List[ModelWithRuntime]:
+        """
+        Get all models in the project with their runtime metrics.
+        
+        This method leverages the execution_info data that is already fetched
+        with the models, eliminating the need for additional API calls.
+        
+        Args:
+            refresh: Force refresh of model cache
+            
+        Returns:
+            List of typed ModelWithRuntime objects containing metadata and runtime metrics
+        """
+        # Get all models with their execution_info
+        models = self.get_models(refresh=refresh)
+        result = []
+        
+        for model in models:
+            # Get execution_info from the model's data
+            execution_info = model._model_data.execution_info
+            
+            # Create RunStatus from execution_info
+            most_recent_run = None
+            if execution_info and 'last_run_id' in execution_info:
+                # Convert run_id to string to match the RunStatus model definition
+                run_id = execution_info.get('last_run_id')
+                if run_id is not None:
+                    run_id = str(run_id)
+                    
+                most_recent_run = RunStatus(
+                    status=execution_info.get('last_run_status'),
+                    run_id=run_id,
+                    run_generated_at=execution_info.get('run_generated_at'),
+                    execution_time=execution_info.get('execution_time'),
+                    error=execution_info.get('last_run_error')
+                )
+            
+            # Create runtime metrics
+            runtime_metrics = ModelRuntimeMetrics(
+                most_recent_run=most_recent_run,
+                execution_info=execution_info
+            )
+            
+            # Create full model with runtime data
+            model_with_runtime = ModelWithRuntime(
+                name=model.metadata.name,
+                unique_id=model.metadata.unique_id,
+                metadata=model.metadata,
+                runtime_metrics=runtime_metrics
+            )
+            
+            result.append(model_with_runtime)
+            
+        return result
     
     # Placeholder methods for future implementations
     def get_tests(self) -> List[Any]:

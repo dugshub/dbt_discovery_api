@@ -141,3 +141,42 @@ def test_model_historical_runs(api, environment_id):
     assert first_run.status is not None
     # Check that either run_time or execution_time is available to confirm it's a valid run
     assert first_run.run_time is not None or first_run.execution_time is not None
+    
+    
+def test_get_models_with_runtime(api, environment_id):
+    """Test getting models with runtime metrics."""
+    project = api.project(environment_id)
+    models_with_runtime = project.get_models_with_runtime()
+    
+    assert len(models_with_runtime) > 0
+    
+    # Verify we have models with runtime info
+    for model in models_with_runtime:
+        # Verify structure
+        assert model.name is not None
+        assert model.unique_id is not None
+        assert model.metadata is not None
+        assert model.runtime_metrics is not None
+        
+        # Verify we can access execution data via computed fields
+        assert hasattr(model, 'execution_time')
+        # execution_time may be None for models that haven't been run
+        
+        assert hasattr(model, 'last_run_status')
+        # last_run_status may be None for models that haven't been run
+        
+        # Check if we have runtime metrics available
+        if model.runtime_metrics.execution_info:
+            assert isinstance(model.runtime_metrics.execution_info, dict)
+            
+            # Check if we have a most recent run
+            if model.runtime_metrics.most_recent_run:
+                assert hasattr(model.runtime_metrics.most_recent_run, 'status')
+                
+    # Find a model with execution data if available (for more detailed testing)
+    model_with_execution = next((m for m in models_with_runtime if m.execution_time is not None), None)
+    
+    if model_with_execution:
+        assert model_with_execution.execution_time > 0
+        assert model_with_execution.last_run_status is not None
+        assert model_with_execution.most_recent_run is not None
