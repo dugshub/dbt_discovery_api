@@ -1,5 +1,6 @@
-from typing import List, Optional
 from sgqlc.operation import Operation
+from src.schema import DefinitionResourcesFilter
+from sgqlc.endpoint.http import HTTPEndpoint
 
 import schema
 
@@ -90,7 +91,6 @@ op = Operation(schema.Query)
 environment_id = sandbox_environment_id
 
 resource_type_filter = ["Model"]
-from schema import DefinitionResourcesFilter
 resource_filter = DefinitionResourcesFilter(types=resource_type_filter)
 
 model_name = 'bd_deal_actuals'
@@ -198,8 +198,6 @@ if include_status:
 # Other
 print(op)
 
-from sgqlc.endpoint.http import HTTPEndpoint
-import os
 
 # Initialize the client with Bearer token
 client = HTTPEndpoint('https://metadata.cloud.getdbt.com/graphql', {'Authorization': f'Bearer {os.getenv("DBT_SERVICE_TOKEN")}'})
