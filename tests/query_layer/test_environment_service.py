@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from typing import Dict, Any
 
-from query_layer.EnvironmentService import EnvironmentService
-from query_layer.BaseQuery import BaseQuery
+from services.EnvironmentService import EnvironmentService
+from services.BaseQuery import BaseQuery
 
 
 @pytest.fixture

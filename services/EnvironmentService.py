@@ -1,7 +1,7 @@
 from typing import Dict, Any, Union
 import re
 from sgqlc.operation import Operation
-from query_layer.BaseQuery import BaseQuery
+from services.BaseQuery import BaseQuery
 
 
 class EnvironmentService:

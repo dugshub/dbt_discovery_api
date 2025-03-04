@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Union
 from sgqlc.operation import Operation
-from query_layer.BaseQuery import BaseQuery
+from services.BaseQuery import BaseQuery
 from models import Model, ModelDefinition, ModelHistoricalRun
 from schema.schema import DefinitionResourcesFilter
 

@@ -2,8 +2,8 @@ import os
 import pytest
 from typing import Dict, Any, Optional
 
-from query_layer.EnvironmentService import EnvironmentService
-from query_layer.BaseQuery import BaseQuery
+from services.EnvironmentService import EnvironmentService
+from services.BaseQuery import BaseQuery
 
 
 @pytest.fixture
