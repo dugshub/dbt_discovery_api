@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ModelBase(BaseModel):
@@ -14,7 +14,7 @@ class Model(ModelBase):
     alias: Optional[str] = None
     unique_id: str
     database: Optional[str] = None
-    schema: Optional[str] = None
+    db_schema: Optional[str] = Field(default=None, alias="schema")
     materialized_type: Optional[str] = None
     execution_info: Dict[str, Any] = {}
     tags: List[str] = []
@@ -25,7 +25,7 @@ class Model(ModelBase):
     language: Optional[str] = None
     fqn: Optional[List[str]] = None
     package_name: Optional[str] = None
-    
+
 
 class ModelDefinition(ModelBase):
     """Represents a model definition in dbt - Definition State."""
@@ -41,7 +41,7 @@ class ModelDefinition(ModelBase):
     meta: Dict[str, Any] = {}
     file_path: str
     database: Optional[str] = None
-    schema: Optional[str] = None
+    db_schema: Optional[str] = Field(default=None, alias="schema")
     alias: Optional[str] = None
     materialized_type: Optional[str] = None
     contract_enforced: Optional[bool] = None
@@ -75,7 +75,7 @@ class ModelHistoricalRun(ModelBase):
     error: Optional[str] = None
     skip: Optional[bool] = None
     database: Optional[str] = None
-    schema: Optional[str] = None
+    db_schema: Optional[str] = Field(default=None, alias="schema")
     raw_sql: Optional[str] = None
     compiled_sql: Optional[str] = None
     raw_code: Optional[str] = None

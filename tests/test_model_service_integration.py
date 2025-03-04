@@ -174,7 +174,7 @@ class TestModelServiceIntegration:
         
         # Check other fields that should be the same
         fields_to_check = [
-            'database', 'schema', 'alias', 'materialized_type',
+            'database', 'db_schema', 'alias', 'materialized_type',
             'contract_enforced', 'language', 'fqn', 'package_name'
         ]
         
