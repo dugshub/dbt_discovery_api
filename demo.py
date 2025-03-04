@@ -19,13 +19,15 @@ def demo_project_metadata():
     print("\n=== Project Metadata ===\n")
     
     # Get project by environment ID
+    print("# Python code:\nproject = api.project(environment_id=sandbox_environment_id)")
     project = api.project(environment_id=sandbox_environment_id)
     
     # Get project metadata
+    print("\n# Python code:\nmetadata = project.get_metadata()")
     metadata = project.get_metadata()
     
     # Print project information
-    print(f"Project Name: {metadata.dbt_project_name}")
+    print(f"\nProject Name: {metadata.dbt_project_name}")
     print(f"Adapter Type: {metadata.adapter_type}")
     print(f"Environment ID: {metadata.environment_id}")
 
@@ -34,13 +36,15 @@ def demo_model_list():
     print("\n=== Models List ===\n")
     
     # Get project by environment ID
+    print("# Python code:\nproject = api.project(environment_id=sandbox_environment_id)")
     project = api.project(environment_id=sandbox_environment_id)
     
     # Get all models
+    print("\n# Python code:\nmodels = project.get_models()")
     models = project.get_models()
     
     # Print models count
-    print(f"Found {len(models)} models")
+    print(f"\nFound {len(models)} models")
     
     # Print first 5 models
     print("\nFirst 5 models:")
@@ -54,14 +58,16 @@ def demo_model_detail():
     model_name = 'bd_deal_actuals'  # Use a model name from your project
     
     # Get project by environment ID
+    print("# Python code:\nproject = api.project(environment_id=sandbox_environment_id)")
     project = api.project(environment_id=sandbox_environment_id)
     
     try:
         # Get specific model by name
+        print(f"\n# Python code:\nmodel = project.get_model('{model_name}')")
         model = project.get_model(model_name)
         
         # Print model metadata
-        print(f"Model Name: {model.metadata.name}")
+        print(f"\nModel Name: {model.metadata.name}")
         print(f"Unique ID: {model.metadata.unique_id}")
         print(f"Database: {model.metadata.database or 'Not specified'}")
         print(f"Schema: {model.metadata.schema or 'Not specified'}")
@@ -90,14 +96,16 @@ def demo_model_runs():
     model_name = 'bd_deal_actuals'  # Use a model name from your project
     
     # Get project by environment ID
+    print("# Python code:\nproject = api.project(environment_id=sandbox_environment_id)")
     project = api.project(environment_id=sandbox_environment_id)
     
     try:
         # Get historical runs directly from project
+        print(f"\n# Python code:\nruns = project.get_model_historical_runs('{model_name}', limit=5)")
         runs = project.get_model_historical_runs(model_name, limit=5)
         
         # Print runs information
-        print(f"Found {len(runs)} historical runs for model '{model_name}'")
+        print(f"\nFound {len(runs)} historical runs for model '{model_name}'")
         
         # Print details for each run
         for i, run in enumerate(runs):
@@ -119,17 +127,21 @@ def demo_model_to_dict():
     model_name = 'bd_deal_actuals'  # Use a model name from your project
     
     # Get project by environment ID
+    print("# Python code:\nproject = api.project(environment_id=sandbox_environment_id)")
     project = api.project(environment_id=sandbox_environment_id)
     
     try:
         # Get specific model by name
+        print(f"\n# Python code:\nmodel = project.get_model('{model_name}')")
         model = project.get_model(model_name)
         
         # Convert model to dictionary
+        print("\n# Python code:\nmodel_dict = model.to_dict()")
         model_dict = model.to_dict()
         
         # Print dictionary representation
         import json
+        print("\n# Python code:\nprint(json.dumps(model_dict, indent=2, default=str))")
         print(json.dumps(model_dict, indent=2, default=str))
     
     except ValueError as e:
