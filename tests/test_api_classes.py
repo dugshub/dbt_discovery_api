@@ -8,6 +8,9 @@ from datetime import datetime
 
 from src.models import Model, ModelHistoricalRun
 from src.api import DiscoveryAPI
+from src.services.BaseQuery import BaseQuery
+from src.services.EnvironmentService import EnvironmentService
+from src.services.ModelService import ModelService
 
 
 @pytest.fixture
@@ -84,9 +87,9 @@ def mock_model_service():
 @pytest.fixture
 def api_with_mocks(mock_environment_service, mock_model_service):
     """Create a DiscoveryAPI instance with mocked services."""
-    with patch('src.api.BaseQuery'), \
-         patch('src.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.api.ModelService') as mock_model_service_cls:
+    with patch('src.api.api.BaseQuery'), \
+         patch('src.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.api.api.ModelService') as mock_model_service_cls:
         
         # Configure mocks to return our pre-configured service mocks
         mock_env_service_cls.return_value = mock_environment_service
@@ -107,16 +110,16 @@ def project(api_with_mocks):
 def test_api_initialization():
     """Test API initialization with and without token."""
     # Test with explicit token - we only care that the BaseQuery is initialized correctly
-    with patch('src.api.BaseQuery') as mock_base_query, \
-         patch('src.api.EnvironmentService'), \
-         patch('src.api.ModelService'):
+    with patch('src.api.api.BaseQuery') as mock_base_query, \
+         patch('src.api.api.EnvironmentService'), \
+         patch('src.api.api.ModelService'):
         DiscoveryAPI(token="test_token")  # We don't need to store the instance
         mock_base_query.assert_called_once_with("test_token", "https://metadata.cloud.getdbt.com/graphql")
     
     # Test with custom endpoint - we only care that the BaseQuery is initialized correctly
-    with patch('src.api.BaseQuery') as mock_base_query, \
-         patch('src.api.EnvironmentService'), \
-         patch('src.api.ModelService'):
+    with patch('src.api.api.BaseQuery') as mock_base_query, \
+         patch('src.api.api.EnvironmentService'), \
+         patch('src.api.api.ModelService'):
         DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")  # We don't need to store the instance
         mock_base_query.assert_called_once_with("test_token", "https://custom-endpoint.com/graphql")
 
