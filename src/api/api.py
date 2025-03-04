@@ -195,6 +195,61 @@ class Project:
             
         return result
     
+    def get_historical_models_runtimes(self, models: Optional[List[str]] = None, fastest: bool = False, slowest: bool = False, limit: int = 10) -> List[ModelRuntimeMetrics]:
+        """Get historical models runtimes. HARD LIMIT AT 10 - this currently makes an API call per model.
+        
+        Args:
+            models: Optional list of model names to get historical runtimes for.
+                   If None, will use fastest or slowest to determine which models to fetch.
+            fastest: If True and models is None, returns historical runs for the fastest models.
+            slowest: If True and models is None, returns historical runs for the slowest models.
+            limit: Maximum number of models to return (capped at 10).
+                  
+        Returns:
+            List of ModelRuntimeMetrics objects containing runtime data for each model.
+        """
+        # Enforce hard limit
+        if limit > 10:
+            limit = 10
+            
+        # Get model names based on parameters
+        model_names_to_fetch = []
+        
+        if models is not None:
+            # Use provided model names list
+            model_names_to_fetch = models[:limit]  # Apply limit
+        elif fastest or slowest:
+            # Get models sorted by runtime
+            sorted_models = self.get_models_with_runtime(descending=slowest, limit=limit)
+            model_names_to_fetch = [model.name for model in sorted_models]
+        else:
+            # Default to getting the slowest models if no specific option is provided
+            sorted_models = self.get_models_with_runtime(descending=True, limit=limit)
+            model_names_to_fetch = [model.name for model in sorted_models]
+            
+        # Fetch historical runs for each model
+        result = []
+        for model_name in model_names_to_fetch:
+            # Get historical runs for this model
+            historical_runs = self.get_model_historical_runs(model_name, limit=5)
+            
+            # Get the model to access its execution_info
+            model = self.get_model(model_name)
+            execution_info = model._model_data.execution_info if model else {}
+            
+            # Create most_recent_run from first historical run if available
+            most_recent_run = historical_runs[0] if historical_runs else None
+            
+            # Create runtime metrics
+            runtime_metrics = ModelRuntimeMetrics(
+                most_recent_run=most_recent_run,
+                execution_info=execution_info
+            )
+            
+            result.append(runtime_metrics)
+            
+        return result
+    
     # Placeholder methods for future implementations
     def get_tests(self) -> List[Any]:
         """Get all tests in the project (not implemented yet)."""
