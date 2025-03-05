@@ -194,7 +194,10 @@ class Project:
         return result
     
     def get_historical_models_runtimes(self, models: Optional[List[str]] = None, fastest: bool = False, slowest: bool = False, limit: int = 10) -> List[ModelRuntimeMetrics]:
-        """Get historical models runtimes. HARD LIMIT AT 10 - this currently makes an API call per model.
+        """Get historical models runtimes with optimized batch querying.
+        
+        This method uses a batched GraphQL query to fetch historical runs for multiple models
+        in a single API call, improving performance significantly.
         
         Args:
             models: Optional list of model names to get historical runtimes for.
@@ -216,23 +219,35 @@ class Project:
         if models is not None:
             # Use provided model names list
             model_names_to_fetch = models[:limit]  # Apply limit
-        elif fastest or slowest:
-            # Get models sorted by runtime
-            sorted_models = self.get_models_with_runtime(descending=slowest, limit=limit)
-            model_names_to_fetch = [model.name for model in sorted_models]
         else:
-            # Default to getting the slowest models if no specific option is provided
-            sorted_models = self.get_models_with_runtime(descending=True, limit=limit)
+            # Set default behavior to slowest=True unless fastest is explicitly True
+            is_descending = not fastest  # True for slowest (default), False for fastest
+            sorted_models = self.get_models_with_runtime(descending=is_descending, limit=limit)
             model_names_to_fetch = [model.name for model in sorted_models]
+        
+        if not model_names_to_fetch:
+            return []
             
-        # Fetch historical runs for each model
+        # Use batch query to fetch all historical runs at once
+        historical_runs_by_model = self._model_service.get_multiple_models_historical_runs(
+            self.environment_id, model_names_to_fetch, last_run_count=5
+        )
+        
+        # Pre-fetch all models metadata in one go
+        models_data = {
+            model.metadata.name: model 
+            for model in self.get_models() 
+            if model.metadata.name in model_names_to_fetch
+        }
+        
+        # Create runtime metrics for each model
         result = []
         for model_name in model_names_to_fetch:
             # Get historical runs for this model
-            historical_runs = self.get_model_historical_runs(model_name, limit=5)
+            historical_runs = historical_runs_by_model.get(model_name, [])
             
             # Get the model to access its execution_info
-            model = self.get_model(model_name)
+            model = models_data.get(model_name)
             execution_info = model._model_data.execution_info if model else {}
             
             # Create most_recent_run from first historical run if available

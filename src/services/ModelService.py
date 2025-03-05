@@ -325,6 +325,80 @@ class ModelService:
             run_data = self._transform_field_names(run)
             result.append(ModelHistoricalRun(**run_data))
         return result
+        
+    def get_multiple_models_historical_runs(self, environment_id: int, model_names: List[str],
+                                          last_run_count: int = 5,
+                                          options: Optional[Dict[str, bool]] = None) -> Dict[str, List[ModelHistoricalRun]]:
+        """
+        Get historical runs for multiple models in a single query using aliasing.
+        
+        This method creates a batched query with aliases for each model to reduce API calls.
+        
+        Args:
+            environment_id: The dbt Cloud environment ID
+            model_names: List of model names to fetch
+            last_run_count: Number of historical runs to fetch for each model
+            options: Query options for field selection
+            
+        Returns:
+            Dictionary mapping model names to their historical runs
+        """
+        if not model_names:
+            return {}
+            
+        # Create a new operation
+        op = self.base_query.create_operation()
+        
+        # Get the environment node but don't add it to the operation yet
+        env = op.environment(id=environment_id)
+        applied = env.applied
+        
+        # Add aliased queries for each model
+        for i, model_name in enumerate(model_names):
+            # Create a unique alias for each model
+            alias = f"model_{i}"
+            
+            # Add the aliased query to fetch historical runs
+            try:
+                runs = applied.model_historical_runs(__alias__=alias, identifier=model_name, last_run_count=last_run_count)
+            except AttributeError:
+                # Try camelCase version if snake_case doesn't work
+                runs = applied.modelHistoricalRuns(__alias__=alias, identifier=model_name, lastRunCount=last_run_count)
+            
+            # Add fields based on options
+            self._add_historical_run_fields(runs, options)
+        
+        # Execute the consolidated query
+        response = self.base_query.execute(op)
+        
+        # Process the response
+        result = {}
+        if 'data' in response and 'environment' in response['data'] and 'applied' in response['data']['environment']:
+            applied_data = response['data']['environment']['applied']
+            
+            # Process each aliased model result
+            for i, model_name in enumerate(model_names):
+                alias = f"model_{i}"
+                
+                # Look for results under the alias in both possible formats
+                model_data = None
+                if alias in applied_data:
+                    model_data = applied_data[alias]
+                
+                if model_data:
+                    # Convert to model historical run objects
+                    model_results = []
+                    for run in model_data:
+                        # Transform GraphQL camelCase to Python snake_case
+                        run_data = self._transform_field_names(run)
+                        model_results.append(ModelHistoricalRun(**run_data))
+                    
+                    result[model_name] = model_results
+                else:
+                    # No data found for this model
+                    result[model_name] = []
+        
+        return result
     
     def get_model_by_name(self, environment_id: int, model_name: str, 
                           state: str = "applied") -> Optional[Union[Model, ModelDefinition]]:

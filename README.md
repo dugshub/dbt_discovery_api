@@ -13,6 +13,7 @@ A Python service layer and user-friendly API for interacting with the dbt Cloud 
 - **Caching**: Efficient caching to minimize API calls
 - **Computed Properties**: Easy access to derived data that spans multiple service calls
 - **Lazy Loading**: Properties are loaded on-demand for better performance
+- **Optimized Batch Queries**: Uses GraphQL aliasing to fetch multiple models in a single query
 
 ## Installation
 
@@ -81,6 +82,17 @@ for model in models_with_runtime:
         print(f"  Last run time: {model.most_recent_run['execution_time']} seconds")
     
     print(f"  Historical runs: {len(model.runtime_metrics.historical_runs)}")
+
+# Get historical runtimes for the slowest models (optimized batch query)
+slowest_models = project.get_historical_models_runtimes(slowest=True, limit=5)
+for model_metrics in slowest_models:
+    print(f"Model runtime: {model_metrics.execution_info.get('execution_time')} seconds")
+    if model_metrics.most_recent_run:
+        print(f"Last run status: {model_metrics.most_recent_run.status}")
+
+# Get historical runtimes for specific models (optimized batch query)
+model_names = ["model_1", "model_2", "model_3"]
+model_metrics = project.get_historical_models_runtimes(models=model_names)
 ```
 
 ### Using the Service Layer (Advanced)
@@ -146,6 +158,7 @@ The library is organized into two main layers:
 - **ORM Mode**: Uses Pydantic's `from_attributes` feature for model conversion
 - **Caching**: Implements caching strategies to minimize service calls
 - **Lazy Loading**: Properties that require service calls are loaded on-demand
+- **Batch Querying**: Utilizes GraphQL aliasing to fetch multiple models' historical runs in a single API call
 
 ## Development
 

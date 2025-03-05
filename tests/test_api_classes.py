@@ -336,6 +336,28 @@ def test_get_historical_models_runtimes_with_model_list(project, mock_model_serv
         )
     ]
     
+    # Set up batch historical runs result
+    mock_model_service.get_multiple_models_historical_runs.return_value = {
+        "model1": [
+            ModelHistoricalRun(
+                name="model1",
+                resource_type="model",
+                run_id="run1",
+                status="success",
+                execution_time=10.5
+            )
+        ],
+        "model2": [
+            ModelHistoricalRun(
+                name="model2",
+                resource_type="model",
+                run_id="run2",
+                status="success",
+                execution_time=12.5
+            )
+        ]
+    }
+    
     # Set up execution_info for test models
     for model in mock_model_service.get_models_applied.return_value:
         model.execution_info = {
@@ -349,10 +371,10 @@ def test_get_historical_models_runtimes_with_model_list(project, mock_model_serv
     model_names = ["model1", "model2"]
     runtime_metrics = project.get_historical_models_runtimes(models=model_names, limit=2)
     
-    # Verify model service was called correctly for each model
-    assert mock_model_service.get_model_historical_runs.call_count == 2
-    mock_model_service.get_model_historical_runs.assert_any_call(12345, "model1", last_run_count=5)
-    mock_model_service.get_model_historical_runs.assert_any_call(12345, "model2", last_run_count=5)
+    # Verify model service was called correctly with batched method
+    mock_model_service.get_multiple_models_historical_runs.assert_called_with(
+        12345, ["model1", "model2"], last_run_count=5
+    )
     
     # Verify the result structure
     assert len(runtime_metrics) == 2
@@ -382,19 +404,61 @@ def test_get_historical_models_runtimes_fastest_slowest(project, mock_model_serv
         'run_generated_at': datetime.now()
     }
     
+    # Set up batch historical runs results
+    model1_runs = [
+        ModelHistoricalRun(
+            name="model1",
+            resource_type="model",
+            run_id="run1",
+            status="success",
+            execution_time=5.5
+        )
+    ]
+    
+    model2_runs = [
+        ModelHistoricalRun(
+            name="model2",
+            resource_type="model",
+            run_id="run2",
+            status="success",
+            execution_time=15.5
+        )
+    ]
+    
+    # For slowest test
+    mock_model_service.get_multiple_models_historical_runs.return_value = {
+        "model2": model2_runs
+    }
+    
     # Test slowest models (default behavior)
     runtime_metrics = project.get_historical_models_runtimes(limit=1)
-    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model2", last_run_count=5)
+    mock_model_service.get_multiple_models_historical_runs.assert_called_with(
+        12345, ["model2"], last_run_count=5
+    )
     assert len(runtime_metrics) == 1
+    
+    # For fastest test
+    mock_model_service.get_multiple_models_historical_runs.reset_mock()
+    mock_model_service.get_multiple_models_historical_runs.return_value = {
+        "model1": model1_runs
+    }
     
     # Test fastest models
-    mock_model_service.get_model_historical_runs.reset_mock()
     runtime_metrics = project.get_historical_models_runtimes(fastest=True, limit=1)
-    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model1", last_run_count=5)
+    mock_model_service.get_multiple_models_historical_runs.assert_called_with(
+        12345, ["model1"], last_run_count=5
+    )
     assert len(runtime_metrics) == 1
     
+    # For explicit slowest flag
+    mock_model_service.get_multiple_models_historical_runs.reset_mock()
+    mock_model_service.get_multiple_models_historical_runs.return_value = {
+        "model2": model2_runs
+    }
+    
     # Test explicit slowest flag
-    mock_model_service.get_model_historical_runs.reset_mock()
     runtime_metrics = project.get_historical_models_runtimes(slowest=True, limit=1)
-    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model2", last_run_count=5)
+    mock_model_service.get_multiple_models_historical_runs.assert_called_with(
+        12345, ["model2"], last_run_count=5
+    )
     assert len(runtime_metrics) == 1
