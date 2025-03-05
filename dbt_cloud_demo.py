@@ -2,11 +2,10 @@
 
 import os
 import json
-from dotenv import load_dotenv
 from src.service_api.DbtCloudService import DbtCloudService
 
 # Load environment variables from .env file
-load_dotenv()
+
 
 def main():
     # Get token from environment variable or use a default for testing

@@ -142,16 +142,16 @@ def test_api_initialization():
     
     # Test with custom endpoint - we only care that the BaseQuery is initialized correctly
     with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
-         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
+         patch('src.discovery_api.api.api.EnvironmentService'), \
+         patch('src.discovery_api.api.api.ModelService'):
         api = DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")
         mock_base_query.assert_called_once_with("test_token", "https://custom-endpoint.com/graphql")
         assert not api.return_query  # Default value
         
     # Test with return_query=True
     with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
-         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
+         patch('src.discovery_api.api.api.EnvironmentService'), \
+         patch('src.discovery_api.api.api.ModelService'):
         api = DiscoveryAPI(token="test_token", return_query=True)
         assert api.return_query
 

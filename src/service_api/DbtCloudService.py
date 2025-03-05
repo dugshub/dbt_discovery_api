@@ -52,7 +52,43 @@ class DbtCloudService:
         result = response.json()
         
         if convert_keys:
-            return self._convert_keys_to_snake_case(result)
+            converted_result = self._convert_keys_to_snake_case(result)
+            if not isinstance(converted_result, dict):
+                raise TypeError(f"Expected dict, got {type(converted_result).__name__}")
+            return converted_result
+        
+        if not isinstance(result, dict):
+            raise TypeError(f"Expected dict, got {type(result).__name__}")
+        return result
+        
+    def _convert_keys_to_snake_case(self, obj: Any) -> Any:
+        """Convert camelCase keys in the response to snake_case.
+        
+        Args:
+            obj: The object to convert keys in (dict, list, or primitive)
+            
+        Returns:
+            Object with converted keys
+        """
+        if isinstance(obj, dict):
+            return {self._camel_to_snake(k): self._convert_keys_to_snake_case(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_keys_to_snake_case(item) for item in obj]
+        else:
+            return obj
+            
+    def _camel_to_snake(self, name: str) -> str:
+        """Convert a camelCase string to snake_case.
+        
+        Args:
+            name: The camelCase string
+            
+        Returns:
+            The snake_case version
+        """
+        import re
+        # Insert underscore before uppercase letters and convert to lowercase
+        result = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
         return result
     
     def get_jobs(self, account_id: int) -> Dict[str, Any]:
