@@ -219,3 +219,41 @@ def test_get_models_with_runtime_sorting_and_limit(api, environment_id):
     # Verify the limited results are the same as the first 'limit' items from the full results
     for i in range(limit):
         assert models_limited[i].name == models_desc[i].name
+
+
+def test_get_historical_models_runtimes(api, environment_id):
+    """Test getting historical models runtimes."""
+    project = api.project(environment_id)
+    
+    # Skip the test if we don't have enough models with execution_time
+    all_models = project.get_models_with_runtime()
+    models_with_execution_time = [m for m in all_models if m.execution_time is not None]
+    
+    if len(models_with_execution_time) < 1:
+        pytest.skip("Need at least 1 model with execution_time for this test")
+    
+    # Get model names for testing
+    model_names = [m.name for m in models_with_execution_time[:2]]
+    
+    # Test with explicit model list
+    if model_names:
+        runtime_metrics = project.get_historical_models_runtimes(models=model_names[:1], limit=1)
+        assert len(runtime_metrics) == 1
+        assert runtime_metrics[0].most_recent_run is not None
+        assert runtime_metrics[0].execution_info is not None
+    
+    # Test with slowest flag (default behavior)
+    runtime_metrics = project.get_historical_models_runtimes(slowest=True, limit=1)
+    assert len(runtime_metrics) == 1
+    assert runtime_metrics[0].most_recent_run is not None
+    assert runtime_metrics[0].execution_info is not None
+    
+    # Test with fastest flag
+    runtime_metrics = project.get_historical_models_runtimes(fastest=True, limit=1)
+    assert len(runtime_metrics) == 1
+    assert runtime_metrics[0].most_recent_run is not None
+    assert runtime_metrics[0].execution_info is not None
+    
+    # Verify the hard limit of 10 is enforced
+    runtime_metrics = project.get_historical_models_runtimes(limit=15)
+    assert len(runtime_metrics) <= 10

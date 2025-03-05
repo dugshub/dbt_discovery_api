@@ -4,7 +4,7 @@ DBT Discovery API Layer - User-friendly interface to the dbt Cloud API.
 Provides intuitive access to dbt Cloud resources without the complexity of GraphQL.
 """
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, cast
 
 from src.services.BaseQuery import BaseQuery
 from src.services.EnvironmentService import EnvironmentService
@@ -26,8 +26,8 @@ class Model:
         self._project = project
         self._model_data = model_data
         # Cache computed properties
-        self._metadata = None
-        self._last_run = None
+        self._metadata: Optional[ModelMetadata] = None
+        self._last_run: Optional[RunStatus] = None
     
     @property
     def metadata(self) -> ModelMetadata:
@@ -35,8 +35,7 @@ class Model:
         if self._metadata is None:
             # Convert service model to API model using model_validate
             self._metadata = ModelMetadata.model_validate(self._model_data)
-        assert self._metadata is not None
-        return self._metadata
+        return cast(ModelMetadata, self._metadata)
     
     @property
     def last_run(self) -> Optional[RunStatus]:
@@ -72,7 +71,7 @@ class Project:
         self.environment_id = environment_id
         self._environment_service = environment_service
         self._model_service = model_service
-        self._models_cache = None
+        self._models_cache: Optional[List[Model]] = None
     
     def get_metadata(self) -> ProjectMetadata:
         """Get project metadata."""
@@ -97,8 +96,7 @@ class Project:
                 Model(project=self, model_data=model)
                 for model in service_models
             ]
-        assert self._models_cache is not None
-        return self._models_cache
+        return cast(List[Model], self._models_cache)
     
     def get_model(self, model_name: str) -> Model:
         """Get a specific model by name."""

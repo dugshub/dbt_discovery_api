@@ -321,3 +321,80 @@ def test_get_models_with_runtime_sorting_and_limit(project, mock_model_service):
     models_with_runtime = project.get_models_with_runtime(descending=False, limit=1)
     assert len(models_with_runtime) == 1
     assert models_with_runtime[0].execution_time == 5.5   # Only includes the lowest runtime
+
+
+def test_get_historical_models_runtimes_with_model_list(project, mock_model_service):
+    """Test getting historical models runtimes with specific model list."""
+    # Set up historical runs for test
+    mock_model_service.get_model_historical_runs.return_value = [
+        ModelHistoricalRun(
+            name="model1",
+            resource_type="model",
+            run_id="run1",
+            status="success",
+            execution_time=10.5
+        )
+    ]
+    
+    # Set up execution_info for test models
+    for model in mock_model_service.get_models_applied.return_value:
+        model.execution_info = {
+            'last_run_id': f'run-{model.name}',
+            'last_run_status': 'success',
+            'execution_time': 5.5 if model.name == "model1" else 15.5,
+            'run_generated_at': datetime.now()
+        }
+    
+    # Call the method with specific model list
+    model_names = ["model1", "model2"]
+    runtime_metrics = project.get_historical_models_runtimes(models=model_names, limit=2)
+    
+    # Verify model service was called correctly for each model
+    assert mock_model_service.get_model_historical_runs.call_count == 2
+    mock_model_service.get_model_historical_runs.assert_any_call(12345, "model1", last_run_count=5)
+    mock_model_service.get_model_historical_runs.assert_any_call(12345, "model2", last_run_count=5)
+    
+    # Verify the result structure
+    assert len(runtime_metrics) == 2
+    assert all(hasattr(m, 'most_recent_run') for m in runtime_metrics)
+    assert all(hasattr(m, 'execution_info') for m in runtime_metrics)
+    
+    # Verify API enforces hard limit at 10
+    many_models = ["model1"] * 15  # Try to get more than the hard limit
+    runtime_metrics = project.get_historical_models_runtimes(models=many_models)
+    assert len(runtime_metrics) <= 10  # Should be limited to 10
+
+
+def test_get_historical_models_runtimes_fastest_slowest(project, mock_model_service):
+    """Test getting historical models runtimes for fastest/slowest models."""
+    # Set up models with different execution times
+    models = mock_model_service.get_models_applied.return_value
+    models[0].execution_info = {
+        'last_run_id': 'run1',
+        'last_run_status': 'success',
+        'execution_time': 5.5,  # Lower runtime for model1
+        'run_generated_at': datetime.now()
+    }
+    models[1].execution_info = {
+        'last_run_id': 'run2',
+        'last_run_status': 'success',
+        'execution_time': 15.5,  # Higher runtime for model2
+        'run_generated_at': datetime.now()
+    }
+    
+    # Test slowest models (default behavior)
+    runtime_metrics = project.get_historical_models_runtimes(limit=1)
+    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model2", last_run_count=5)
+    assert len(runtime_metrics) == 1
+    
+    # Test fastest models
+    mock_model_service.get_model_historical_runs.reset_mock()
+    runtime_metrics = project.get_historical_models_runtimes(fastest=True, limit=1)
+    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model1", last_run_count=5)
+    assert len(runtime_metrics) == 1
+    
+    # Test explicit slowest flag
+    mock_model_service.get_model_historical_runs.reset_mock()
+    runtime_metrics = project.get_historical_models_runtimes(slowest=True, limit=1)
+    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model2", last_run_count=5)
+    assert len(runtime_metrics) == 1
