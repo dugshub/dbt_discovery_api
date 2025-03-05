@@ -174,8 +174,14 @@ def test_model_with_runtime():
     # Test computed fields
     assert model.execution_time == 10.5
     assert model.last_run_status == "success"
-    assert model.most_recent_run is not None
-    assert model.most_recent_run["status"] == "success"
+    
+    # Test most_recent_run computed field
+    # First get the computed field value (which is a dictionary or None)
+    most_recent_run_dict = model.most_recent_run  # type: ignore
+    assert most_recent_run_dict is not None
+    # Now we can safely access the dictionary
+    assert "status" in most_recent_run_dict  # type: ignore
+    assert most_recent_run_dict["status"] == "success"  # type: ignore
     
     # Test direct access to execution_info
     assert model.runtime_metrics.execution_info.get('execution_time') == 10.5

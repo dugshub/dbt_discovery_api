@@ -228,13 +228,14 @@ class ModelService:
             model_run.error()
             model_run.skip()
     
-    def get_models_applied(self, environment_id: int, limit: int = 300) -> List[Model]:
+    def get_models_applied(self, environment_id: int, limit: int = 300, **kwargs) -> List[Model]:
         """
         Get models from the applied state.
         
         Args:
             environment_id: The ID of the environment to query
             limit: Maximum number of models to return
+            **kwargs: Additional arguments to pass to execute, such as return_query=True
             
         Returns:
             List of Model objects
@@ -254,7 +255,7 @@ class ModelService:
         self._add_model_applied_fields(model_node)
         
         # Execute and process response
-        response = self.base_query.execute(op)
+        response = self.base_query.execute(op, **kwargs)
         
         # Convert to model objects
         result = []
@@ -264,13 +265,14 @@ class ModelService:
             result.append(Model(**node_data))
         return result
     
-    def get_models_definition(self, environment_id: int, limit: int = 300) -> List[ModelDefinition]:
+    def get_models_definition(self, environment_id: int, limit: int = 300, **kwargs) -> List[ModelDefinition]:
         """
         Get models from the definition state.
         
         Args:
             environment_id: The ID of the environment to query
             limit: Maximum number of models to return
+            **kwargs: Additional arguments to pass to execute, such as return_query=True
             
         Returns:
             List of ModelDefinition objects
@@ -293,7 +295,7 @@ class ModelService:
         self._add_model_definition_fields(model_node)
         
         # Execute and process response
-        response = self.base_query.execute(op)
+        response = self.base_query.execute(op, **kwargs)
         
         # Convert to model definition objects
         result = []
@@ -305,7 +307,8 @@ class ModelService:
     
     def get_model_historical_runs(self, environment_id: int, model_name: str, 
                                   last_run_count: int = 10, 
-                                  options: Optional[Dict[str, bool]] = None) -> List[ModelHistoricalRun]:
+                                  options: Optional[Dict[str, bool]] = None,
+                                  **kwargs) -> List[ModelHistoricalRun]:
         """
         Get historical runs for a specific model.
         
@@ -314,7 +317,7 @@ class ModelService:
             model_name: The name of the model to query
             last_run_count: Number of historical runs to fetch
             options: Query options for field selection
-            return_query: If True, include the GraphQL query in the response
+            **kwargs: Additional arguments to pass to execute, such as return_query=True
             
         Returns:
             List of ModelHistoricalRun objects
@@ -333,7 +336,7 @@ class ModelService:
         self._add_historical_run_fields(runs, options)
         
         # Execute and process response
-        response = self.base_query.execute(op)
+        response = self.base_query.execute(op, **kwargs)
         
         # Figure out which key the API is using
         api_key = None
@@ -358,7 +361,8 @@ class ModelService:
         
     def get_multiple_models_historical_runs(self, environment_id: int, model_names: List[str],
                                           last_run_count: int = 5,
-                                          options: Optional[Dict[str, bool]] = None) -> Dict[str, List[ModelHistoricalRun]]:
+                                          options: Optional[Dict[str, bool]] = None,
+                                          **kwargs) -> Dict[str, List[ModelHistoricalRun]]:
         """
         Get historical runs for multiple models in a single query using aliasing.
         
@@ -369,7 +373,7 @@ class ModelService:
             model_names: List of model names to fetch
             last_run_count: Number of historical runs to fetch for each model
             options: Query options for field selection
-            return_query: If True, include the GraphQL query in the response
+            **kwargs: Additional arguments to pass to execute, such as return_query=True
             
         Returns:
             Dictionary mapping model names to their historical runs
@@ -400,7 +404,7 @@ class ModelService:
             self._add_historical_run_fields(runs, options)
         
         # Execute the consolidated query
-        response = self.base_query.execute(op)
+        response = self.base_query.execute(op, **kwargs)
         
         # Process the response
         result = {}
@@ -432,7 +436,7 @@ class ModelService:
         return result
     
     def get_model_by_name(self, environment_id: int, model_name: str, 
-                          state: str = "applied") -> Optional[Union[Model, ModelDefinition]]:
+                          state: str = "applied", **kwargs) -> Optional[Union[Model, ModelDefinition]]:
         """
         Get a specific model by name from either applied or definition state.
         
@@ -440,18 +444,19 @@ class ModelService:
             environment_id: The ID of the environment to query
             model_name: The name of the model to query
             state: The state to query (applied or definition)
+            **kwargs: Additional arguments to pass to execute, such as return_query=True
             
         Returns:
             Model or ModelDefinition object, or None if not found
         """
         
         if state.lower() == "applied":
-            models = self.get_models_applied(environment_id)
-            return next((model for model in models if model.name == model_name), None)
+            applied_models = self.get_models_applied(environment_id, **kwargs)
+            return next((model for model in applied_models if model.name == model_name), None)
         
         elif state.lower() == "definition":
-            models = self.get_models_definition(environment_id)
-            return next((model for model in models if model.name == model_name), None)
+            definition_models = self.get_models_definition(environment_id, **kwargs)
+            return next((model for model in definition_models if model.name == model_name), None)
         
         else:
             raise ValueError(f"Invalid state: {state}. Must be 'applied' or 'definition'.")

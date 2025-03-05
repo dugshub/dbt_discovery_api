@@ -5,9 +5,9 @@ These models represent the user-facing data structures that are returned by API 
 They are separate from the service-layer models (src/models.py) that interact with the GraphQL API.
 """
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, ClassVar
 from datetime import datetime
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, ConfigDict
 
 
 # Common API models
@@ -21,9 +21,8 @@ class ModelMetadata(BaseModel):
     materialized: Optional[str] = Field(default=None, alias="materialized_type")
     tags: List[str] = Field(default_factory=list)
     
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
+    # Using the correct syntax for Pydantic v2 model_config
+    model_config: ClassVar = ConfigDict(from_attributes=True)  # type: ignore
 
 
 class RunStatus(BaseModel):
@@ -34,9 +33,8 @@ class RunStatus(BaseModel):
     execution_time: Optional[float] = None
     error_message: Optional[str] = Field(default=None, alias="error")
     
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
+    # Using the correct syntax for Pydantic v2 model_config
+    model_config: ClassVar = ConfigDict(from_attributes=True)  # type: ignore
 
 
 class ProjectMetadata(BaseModel):
@@ -47,9 +45,8 @@ class ProjectMetadata(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
-    model_config = {
-        "from_attributes": True  # Enable conversion from objects (was orm_mode in v1)
-    }
+    # Using the correct syntax for Pydantic v2 model_config
+    model_config: ClassVar = ConfigDict(from_attributes=True)  # type: ignore
 
 
 # Runtime metrics models
@@ -58,9 +55,8 @@ class ModelRuntimeMetrics(BaseModel):
     most_recent_run: Optional[RunStatus] = None
     execution_info: Dict[str, Any] = Field(default_factory=dict)
     
-    model_config = {
-        "from_attributes": True
-    }
+    # Using the correct syntax for Pydantic v2 model_config
+    model_config: ClassVar = ConfigDict(from_attributes=True)  # type: ignore
 
 
 class ModelWithRuntime(BaseModel):
@@ -70,9 +66,8 @@ class ModelWithRuntime(BaseModel):
     metadata: ModelMetadata
     runtime_metrics: ModelRuntimeMetrics
     
-    model_config = {
-        "from_attributes": True
-    }
+    # Using the correct syntax for Pydantic v2 model_config
+    model_config: ClassVar = ConfigDict(from_attributes=True)  # type: ignore
     
     @computed_field
     def execution_time(self) -> Optional[float]:

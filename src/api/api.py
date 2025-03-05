@@ -74,10 +74,22 @@ class Project:
         self._models_cache: Optional[List[Model]] = None
         self.return_query = return_query
     
-    def get_metadata(self) -> ProjectMetadata:
-        """Get project metadata."""
-        # Get environment data
-        environment = self._environment_service.get_environment_metadata(self.environment_id)
+    def get_metadata(self, return_query: bool = None) -> ProjectMetadata:
+        """
+        Get project metadata.
+        
+        Args:
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
+        """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
+        # Get environment data with query if requested
+        environment = self._environment_service.get_environment_metadata(
+            self.environment_id, 
+            return_query=include_query
+        )
         
         # Add environment_id to the data
         environment['environment_id'] = self.environment_id
@@ -85,12 +97,25 @@ class Project:
         # Convert to API model using model_validate
         return ProjectMetadata.model_validate(environment)
     
-    def get_models(self, refresh: bool = False) -> List[Model]:
-        """Get all models in the project."""
+    def get_models(self, refresh: bool = False, return_query: bool = None) -> List[Model]:
+        """
+        Get all models in the project.
+        
+        Args:
+            refresh: Force refresh of model cache
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
+        """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # Use cache unless refresh is requested
         if self._models_cache is None or refresh:
             # Get models from service layer
-            service_models = self._model_service.get_models_applied(self.environment_id)
+            service_models = self._model_service.get_models_applied(
+                self.environment_id,
+                return_query=include_query
+            )
             
             # Transform to API models
             self._models_cache = [
@@ -99,8 +124,18 @@ class Project:
             ]
         return cast(List[Model], self._models_cache)
     
-    def get_model(self, model_name: str) -> Model:
-        """Get a specific model by name."""
+    def get_model(self, model_name: str, return_query: bool = None) -> Model:
+        """
+        Get a specific model by name.
+        
+        Args:
+            model_name: The name of the model to fetch
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
+        """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # First check cache if available
         if self._models_cache:
             model = next((m for m in self._models_cache if m.metadata.name == model_name), None)
@@ -109,7 +144,7 @@ class Project:
         
         # If not in cache, fetch directly
         service_model = self._model_service.get_model_by_name(
-            self.environment_id, model_name, state="applied"
+            self.environment_id, model_name, state="applied", return_query=include_query
         )
         
         if not service_model:
@@ -117,17 +152,28 @@ class Project:
             
         return Model(project=self, model_data=service_model)
     
-    def get_model_historical_runs(self, model_name: str, limit: int = 5) -> List[RunStatus]:
-        """Get historical runs for a specific model."""
+    def get_model_historical_runs(self, model_name: str, limit: int = 5, return_query: bool = None) -> List[RunStatus]:
+        """
+        Get historical runs for a specific model.
+        
+        Args:
+            model_name: The name of the model to fetch runs for
+            limit: Maximum number of runs to fetch
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
+        """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # Get runs from service layer
         service_runs = self._model_service.get_model_historical_runs(
-            self.environment_id, model_name, last_run_count=limit
+            self.environment_id, model_name, last_run_count=limit, return_query=include_query
         )
         
         # Convert to API models using model_validate
         return [RunStatus.model_validate(run) for run in service_runs]
     
-    def get_models_with_runtime(self, refresh: bool = False, descending: bool = True, limit: int = 0) -> List[ModelWithRuntime]:
+    def get_models_with_runtime(self, refresh: bool = False, descending: bool = True, limit: int = 0, return_query: bool = None) -> List[ModelWithRuntime]:
         """
         Get all models in the project with their runtime metrics.
         
@@ -138,12 +184,17 @@ class Project:
             refresh: Force refresh of model cache
             descending: Sort by runtime in descending order if True, ascending if False
             limit: Maximum number of models to return (0 means no limit)
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
             
         Returns:
             List of typed ModelWithRuntime objects containing metadata and runtime metrics
         """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # Get all models with their execution_info
-        models = self.get_models(refresh=refresh)
+        models = self.get_models(refresh=refresh, return_query=include_query)
         result = []
         
         for model in models:
@@ -194,7 +245,7 @@ class Project:
             
         return result
     
-    def get_historical_models_runtimes(self, models: Optional[List[str]] = None, fastest: bool = False, slowest: bool = False, limit: int = 10) -> List[ModelRuntimeMetrics]:
+    def get_historical_models_runtimes(self, models: Optional[List[str]] = None, fastest: bool = False, slowest: bool = False, limit: int = 10, return_query: bool = None) -> List[ModelRuntimeMetrics]:
         """Get historical models runtimes with optimized batch querying.
         
         This method uses a batched GraphQL query to fetch historical runs for multiple models
@@ -206,10 +257,15 @@ class Project:
             fastest: If True and models is None, returns historical runs for the fastest models.
             slowest: If True and models is None, returns historical runs for the slowest models.
             limit: Maximum number of models to return (capped at 10).
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the Project's return_query setting.
                   
         Returns:
             List of ModelRuntimeMetrics objects containing runtime data for each model.
         """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # Enforce hard limit
         if limit > 10:
             limit = 10
@@ -231,7 +287,7 @@ class Project:
             
         # Use batch query to fetch all historical runs at once
         historical_runs_by_model = self._model_service.get_multiple_models_historical_runs(
-            self.environment_id, model_names_to_fetch, last_run_count=5
+            self.environment_id, model_names_to_fetch, last_run_count=5, return_query=include_query
         )
         
         # Pre-fetch all models metadata in one go
@@ -296,7 +352,7 @@ class DiscoveryAPI:
         self._model_service = ModelService(base_query)
         self.return_query = return_query
     
-    def project(self, environment_id: int) -> Project:
+    def project(self, environment_id: int, return_query: bool = False) -> Project:
         """Get a project by environment ID."""
         # Validate the environment exists by trying to get metadata
         try:

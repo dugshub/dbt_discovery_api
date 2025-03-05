@@ -73,7 +73,7 @@ def mock_model_service():
     
     # Mock service methods
     mock.get_models_applied.return_value = test_models
-    mock.get_model_by_name.side_effect = lambda env_id, name, state: next(
+    mock.get_model_by_name.side_effect = lambda env_id, name, state, **kwargs: next(
         (m for m in test_models if m.name == name), None
     )
     mock.get_model_historical_runs.return_value = test_runs
@@ -96,12 +96,33 @@ def api_with_mocks(mock_environment_service, mock_model_service):
         api = DiscoveryAPI(token="test_token")
         
         yield api
+        
+@pytest.fixture
+def api_with_return_query(mock_environment_service, mock_model_service):
+    """Create a DiscoveryAPI instance with return_query=True."""
+    with patch('src.api.api.BaseQuery'), \
+         patch('src.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.api.api.ModelService') as mock_model_service_cls:
+        
+        # Configure mocks to return our pre-configured service mocks
+        mock_env_service_cls.return_value = mock_environment_service
+        mock_model_service_cls.return_value = mock_model_service
+        
+        # Create API instance with return_query=True
+        api = DiscoveryAPI(token="test_token", return_query=True)
+        
+        yield api
 
 
 @pytest.fixture
 def project(api_with_mocks):
     """Create a Project instance using the mocked API."""
     return api_with_mocks.project(environment_id=12345)
+
+@pytest.fixture
+def project_with_return_query(api_with_return_query):
+    """Create a Project instance with return_query=True."""
+    return api_with_return_query.project(environment_id=12345)
 
 
 def test_api_initialization():
@@ -110,15 +131,24 @@ def test_api_initialization():
     with patch('src.api.api.BaseQuery') as mock_base_query, \
          patch('src.api.api.EnvironmentService'), \
          patch('src.api.api.ModelService'):
-        DiscoveryAPI(token="test_token")  # We don't need to store the instance
+        api = DiscoveryAPI(token="test_token")
         mock_base_query.assert_called_once_with("test_token", "https://metadata.cloud.getdbt.com/graphql")
+        assert not api.return_query  # Default value
     
     # Test with custom endpoint - we only care that the BaseQuery is initialized correctly
     with patch('src.api.api.BaseQuery') as mock_base_query, \
          patch('src.api.api.EnvironmentService'), \
          patch('src.api.api.ModelService'):
-        DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")  # We don't need to store the instance
+        api = DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")
         mock_base_query.assert_called_once_with("test_token", "https://custom-endpoint.com/graphql")
+        assert not api.return_query  # Default value
+        
+    # Test with return_query=True
+    with patch('src.api.api.BaseQuery') as mock_base_query, \
+         patch('src.api.api.EnvironmentService'), \
+         patch('src.api.api.ModelService'):
+        api = DiscoveryAPI(token="test_token", return_query=True)
+        assert api.return_query
 
 
 def test_api_project_method(api_with_mocks, mock_environment_service):
@@ -134,20 +164,33 @@ def test_api_project_method(api_with_mocks, mock_environment_service):
         api_with_mocks.project(environment_id=99999)
 
 
-def test_project_get_metadata(project, mock_environment_service):
+def test_project_get_metadata(project, project_with_return_query, mock_environment_service):
     """Test getting project metadata."""
+    # Test regular project (return_query=False)
     metadata = project.get_metadata()
-    mock_environment_service.get_environment_metadata.assert_called_with(12345)
+    mock_environment_service.get_environment_metadata.assert_called_with(12345, return_query=False)
     assert metadata.dbt_project_name == "test_project"
     assert metadata.adapter_type == "snowflake"
     assert metadata.environment_id == 12345
+    
+    # Reset mock for next test
+    mock_environment_service.reset_mock()
+    
+    # Test project with return_query=True
+    metadata = project_with_return_query.get_metadata()
+    mock_environment_service.get_environment_metadata.assert_called_with(12345, return_query=True)
+    
+    # Test explicit override of return_query
+    mock_environment_service.reset_mock()
+    metadata = project.get_metadata(return_query=True)
+    mock_environment_service.get_environment_metadata.assert_called_with(12345, return_query=True)
 
 
 def test_project_get_models(project, mock_model_service):
     """Test getting all models in a project."""
     # Test initial call fetches models
     models = project.get_models()
-    mock_model_service.get_models_applied.assert_called_once_with(12345)
+    mock_model_service.get_models_applied.assert_called_once_with(12345, return_query=False)
     assert len(models) == 2
     assert models[0].metadata.name == "model1"
     assert models[1].metadata.name == "model2"
@@ -160,7 +203,7 @@ def test_project_get_models(project, mock_model_service):
     
     # Test refresh bypasses cache
     models = project.get_models(refresh=True)
-    mock_model_service.get_models_applied.assert_called_once_with(12345)
+    mock_model_service.get_models_applied.assert_called_once_with(12345, return_query=False)
     assert len(models) == 2
 
 
@@ -171,6 +214,9 @@ def test_project_get_model(project, mock_model_service):
     assert model.metadata.name == "model1"
     assert model.metadata.unique_id == "model.test.model1"
     
+    # Check that the method was called with the correct parameters
+    mock_model_service.get_model_by_name.assert_called_with(12345, "model1", state="applied", return_query=False)
+    
     # Test error when model doesn't exist
     mock_model_service.get_model_by_name.return_value = None
     with pytest.raises(ValueError):
@@ -180,7 +226,7 @@ def test_project_get_model(project, mock_model_service):
 def test_project_get_model_historical_runs(project, mock_model_service):
     """Test getting historical runs for a model."""
     runs = project.get_model_historical_runs("model1")
-    mock_model_service.get_model_historical_runs.assert_called_once_with(12345, "model1", last_run_count=5)
+    mock_model_service.get_model_historical_runs.assert_called_once_with(12345, "model1", last_run_count=5, return_query=False)
     assert len(runs) == 2
     assert runs[0].status == "success"
     assert runs[1].status == "error"
@@ -205,7 +251,7 @@ def test_model_last_run_property(project, mock_model_service):
     model = project.get_model("model1")
     last_run = model.last_run
     
-    mock_model_service.get_model_historical_runs.assert_called_once_with(12345, "model1", last_run_count=1)
+    mock_model_service.get_model_historical_runs.assert_called_once_with(12345, "model1", last_run_count=1, return_query=False)
     assert last_run.status == "success"
     assert last_run.run_id == "run1"
     
@@ -220,7 +266,7 @@ def test_model_get_historical_runs(project, mock_model_service):
     model = project.get_model("model1")
     runs = model.get_historical_runs(limit=10)
     
-    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model1", last_run_count=10)
+    mock_model_service.get_model_historical_runs.assert_called_with(12345, "model1", last_run_count=10, return_query=False)
     assert len(runs) == 2
 
 
@@ -252,7 +298,7 @@ def test_get_models_with_runtime(project, mock_model_service):
     models_with_runtime = project.get_models_with_runtime()
     
     # Verify model service was called correctly
-    mock_model_service.get_models_applied.assert_called_with(12345)
+    mock_model_service.get_models_applied.assert_called_with(12345, return_query=False)
     # Should not call get_model_historical_runs anymore
     mock_model_service.get_model_historical_runs.assert_not_called()
     
@@ -373,7 +419,7 @@ def test_get_historical_models_runtimes_with_model_list(project, mock_model_serv
     
     # Verify model service was called correctly with batched method
     mock_model_service.get_multiple_models_historical_runs.assert_called_with(
-        12345, ["model1", "model2"], last_run_count=5
+        12345, ["model1", "model2"], last_run_count=5, return_query=False
     )
     
     # Verify the result structure
@@ -433,7 +479,7 @@ def test_get_historical_models_runtimes_fastest_slowest(project, mock_model_serv
     # Test slowest models (default behavior)
     runtime_metrics = project.get_historical_models_runtimes(limit=1)
     mock_model_service.get_multiple_models_historical_runs.assert_called_with(
-        12345, ["model2"], last_run_count=5
+        12345, ["model2"], last_run_count=5, return_query=False
     )
     assert len(runtime_metrics) == 1
     
@@ -446,7 +492,7 @@ def test_get_historical_models_runtimes_fastest_slowest(project, mock_model_serv
     # Test fastest models
     runtime_metrics = project.get_historical_models_runtimes(fastest=True, limit=1)
     mock_model_service.get_multiple_models_historical_runs.assert_called_with(
-        12345, ["model1"], last_run_count=5
+        12345, ["model1"], last_run_count=5, return_query=False
     )
     assert len(runtime_metrics) == 1
     
@@ -459,6 +505,6 @@ def test_get_historical_models_runtimes_fastest_slowest(project, mock_model_serv
     # Test explicit slowest flag
     runtime_metrics = project.get_historical_models_runtimes(slowest=True, limit=1)
     mock_model_service.get_multiple_models_historical_runs.assert_called_with(
-        12345, ["model2"], last_run_count=5
+        12345, ["model2"], last_run_count=5, return_query=False
     )
     assert len(runtime_metrics) == 1

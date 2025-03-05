@@ -25,6 +25,7 @@ disable_error_code = [
     "method-assign", 
     "union-attr",
     "arg-type",
+    "assignment",  
 ]
 
 # Use explicit package bases
@@ -43,3 +44,10 @@ module = [
     "src.schema.schema",
 ]
 ignore_errors = true
+
+# Ignore errors in models.py related to Pydantic v2 model_config
+[[tool.mypy.overrides]]
+module = [
+    "src.api.models",
+]
+disable_error_code = ["assignment"]

@@ -37,7 +37,7 @@ class BaseQuery:
             response_with_query["query"] = str(operation)
             return response_with_query
             
-        return result
+        return dict(result)  # Ensure we return a Dict[str, Any]
     
     def create_operation(self) -> Operation:
         """Create a new GraphQL operation."""
@@ -65,7 +65,8 @@ class BaseQuery:
     # Utility functions for creating customized queries with the BaseQuery class
     def _add_environment_query(self, op: Operation, environment_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
         """Add environment fields to the query."""
-        kwargs = {"id": environment_id}
+        # The sgqlc library handles the conversion from int to the appropriate type
+        kwargs: Dict[str, Any] = {"id": environment_id}
         if alias:
             kwargs["__alias__"] = alias
         environment = op.environment(**kwargs)
@@ -73,7 +74,8 @@ class BaseQuery:
 
     def _add_applied_query(self, op: Operation, environment_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
         """Add applied state fields to the query."""
-        kwargs = {"id": environment_id}
+        # The sgqlc library handles the conversion from int to the appropriate type
+        kwargs: Dict[str, Any] = {"id": environment_id}
         if alias:
             kwargs["__alias__"] = alias
         applied = op.environment(**kwargs).applied
@@ -81,7 +83,8 @@ class BaseQuery:
 
     def _add_definition_query(self, op: Operation, environment_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
         """Add definition state fields to the query."""
-        kwargs = {"id": environment_id}
+        # The sgqlc library handles the conversion from int to the appropriate type
+        kwargs: Dict[str, Any] = {"id": environment_id}
         if alias:
             kwargs["__alias__"] = alias
         definition = op.environment(**kwargs).definition
