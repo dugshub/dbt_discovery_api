@@ -9,9 +9,11 @@ dependencies = [
     "mypy>=1.15.0",
     "pydantic>=2.10.6",
     "pytest>=8.3.5",
+    "pyyaml>=6.0.2",
     "requests>=2.32.3",
     "ruff>=0.9.9",
     "sgqlc>=16.4",
+    "types-pyyaml>=6.0.12.20241230",
 ]
 
 [tool.mypy]

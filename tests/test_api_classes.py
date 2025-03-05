@@ -3,7 +3,7 @@ Tests for API layer core classes.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, mock_open
 from datetime import datetime
 
 from src.discovery_api.models import ModelHistoricalRun
@@ -91,7 +91,11 @@ def api_with_mocks(mock_environment_service, mock_model_service):
     """Create a DiscoveryAPI instance with mocked services."""
     with patch('src.discovery_api.api.api.BaseQuery'), \
          patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls, \
+         patch('os.path.exists') as mock_exists:
+        
+        # Prevent loading from config file
+        mock_exists.return_value = False
         
         # Configure mocks to return our pre-configured service mocks
         mock_env_service_cls.return_value = mock_environment_service
@@ -107,7 +111,11 @@ def api_with_return_query(mock_environment_service, mock_model_service):
     """Create a DiscoveryAPI instance with return_query=True."""
     with patch('src.discovery_api.api.api.BaseQuery'), \
          patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls, \
+         patch('os.path.exists') as mock_exists:
+        
+        # Prevent loading from config file
+        mock_exists.return_value = False
         
         # Configure mocks to return our pre-configured service mocks
         mock_env_service_cls.return_value = mock_environment_service
@@ -135,15 +143,22 @@ def test_api_initialization():
     # Test with explicit token - we only care that the BaseQuery is initialized correctly
     with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
          patch('src.discovery_api.api.api.EnvironmentService'), \
-         patch('src.discovery_api.api.api.ModelService'):
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists:
+        # No config file exists
+        mock_exists.return_value = False
         api = DiscoveryAPI(token="test_token")
         mock_base_query.assert_called_once_with("test_token", "https://metadata.cloud.getdbt.com/graphql")
         assert not api.return_query  # Default value
+        assert len(api.projects) == 0  # No projects loaded
     
     # Test with custom endpoint - we only care that the BaseQuery is initialized correctly
     with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
          patch('src.discovery_api.api.api.EnvironmentService'), \
-         patch('src.discovery_api.api.api.ModelService'):
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists:
+        # No config file exists
+        mock_exists.return_value = False
         api = DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")
         mock_base_query.assert_called_once_with("test_token", "https://custom-endpoint.com/graphql")
         assert not api.return_query  # Default value
@@ -151,7 +166,10 @@ def test_api_initialization():
     # Test with return_query=True
     with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
          patch('src.discovery_api.api.api.EnvironmentService'), \
-         patch('src.discovery_api.api.api.ModelService'):
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists:
+        # No config file exists
+        mock_exists.return_value = False
         api = DiscoveryAPI(token="test_token", return_query=True)
         assert api.return_query
 
@@ -167,6 +185,102 @@ def test_api_project_method(api_with_mocks, mock_environment_service):
     mock_environment_service.get_environment_metadata.side_effect = Exception("Environment not found")
     with pytest.raises(ValueError):
         api_with_mocks.project(environment_id=99999)
+
+
+# Used internally by tests
+_CONFIG_DATA = {
+    "projects": {
+        "project1": {
+            "prod_env_id": 12345,
+            "label": "Project One"
+        },
+        "project2": {
+            "prod_env_id": 67890,
+            "label": "Project Two"
+        }
+    }
+}
+
+
+def test_api_init_with_config_file():
+    """Test API initialization with config file."""
+    with patch('src.discovery_api.api.api.BaseQuery'), \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists, \
+         patch('builtins.open', mock_open()), \
+         patch('yaml.safe_load') as mock_yaml_load:
+        
+        # Setup mocks
+        mock_exists.return_value = True
+        mock_yaml_load.return_value = {
+            "projects": {
+                "project1": {
+                    "prod_env_id": 12345,
+                    "label": "Project One"
+                }
+            }
+        }
+        mock_env_instance = mock_env_service_cls.return_value
+        mock_env_instance.get_environment_metadata.return_value = {"name": "Test Env"}
+        
+        # Test with config file
+        api = DiscoveryAPI(token="test_token", config_file="test_config.yml")
+        
+        # Assertions
+        mock_exists.assert_called_with("test_config.yml")
+        mock_yaml_load.assert_called_once()
+        assert len(api.projects) == 1
+        assert "project1" in api.projects
+        mock_env_instance.get_environment_metadata.assert_called_with(12345)
+
+
+def test_api_init_without_config_file():
+    """Test API initialization with non-existent config file."""
+    with patch('src.discovery_api.api.api.BaseQuery'), \
+         patch('src.discovery_api.api.api.EnvironmentService'), \
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists:
+        
+        # Setup mock
+        mock_exists.return_value = False
+        
+        # Test with non-existent config file
+        api = DiscoveryAPI(token="test_token", config_file="nonexistent.yml")
+        
+        # Assertions
+        mock_exists.assert_called_with("nonexistent.yml")
+        assert len(api.projects) == 0
+
+
+def test_api_init_with_invalid_environment():
+    """Test API initialization with config containing invalid environment ID."""
+    with patch('src.discovery_api.api.api.BaseQuery'), \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService'), \
+         patch('os.path.exists') as mock_exists, \
+         patch('builtins.open', mock_open()), \
+         patch('yaml.safe_load') as mock_yaml_load:
+        
+        # Setup mocks
+        mock_exists.return_value = True
+        mock_yaml_load.return_value = {
+            "projects": {
+                "project1": {
+                    "prod_env_id": 12345,
+                    "label": "Project One"
+                }
+            }
+        }
+        mock_env_instance = mock_env_service_cls.return_value
+        # Make environment validation fail
+        mock_env_instance.get_environment_metadata.side_effect = Exception("Environment not found")
+        
+        # Test with config file containing invalid environment
+        api = DiscoveryAPI(token="test_token", config_file="test_config.yml")
+        
+        # Assertions - should handle the error and skip the invalid environment
+        assert len(api.projects) == 0
 
 
 def test_project_get_metadata(project, project_with_return_query, mock_environment_service):

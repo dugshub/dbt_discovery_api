@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 from src.service_api.DbtCloudService import DbtCloudService
 from src.service_api.models import (
     DbtJobsResponse, DbtAccountResponse, DbtJob, DbtAccountInfo,
-    DbtJobSchedule, DateTimeEncoder
+    DbtJobSchedule
 )
 
 

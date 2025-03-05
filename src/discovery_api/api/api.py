@@ -4,6 +4,8 @@ DBT Discovery API Layer - User-friendly interface to the dbt Cloud API.
 Provides intuitive access to dbt Cloud resources without the complexity of GraphQL.
 """
 
+import os
+import yaml
 from typing import List, Dict, Optional, Any, cast
 
 from src.discovery_api.services.BaseQuery import BaseQuery
@@ -335,7 +337,8 @@ class Project:
 class DiscoveryAPI:
     """Main entry point for the API layer"""
     
-    def __init__(self, token: Optional[str] = None, endpoint: str = "https://metadata.cloud.getdbt.com/graphql", return_query: bool = False):
+    def __init__(self, token: Optional[str] = None, endpoint: str = "https://metadata.cloud.getdbt.com/graphql", 
+                 config_file: str = "config.yml", return_query: bool = False):
         """
         Initialize the Discovery API.
         
@@ -343,6 +346,8 @@ class DiscoveryAPI:
             token: The authentication token for the dbt Cloud API. 
                   If None, will try to use the DBT_SERVICE_TOKEN environment variable.
             endpoint: The GraphQL endpoint to use.
+            config_file: Path to YAML configuration file containing environment IDs for projects.
+                        Defaults to config.yml in the current directory.
             return_query: If True, all API responses will include the raw GraphQL query that was executed.
                          This is useful for debugging or understanding the underlying queries.
         """
@@ -351,9 +356,64 @@ class DiscoveryAPI:
         self._environment_service = EnvironmentService(base_query)
         self._model_service = ModelService(base_query)
         self.return_query = return_query
+        
+        # Dictionary to store Project instances
+        self._projects: Dict[str, Project] = {}
+        
+        # Load configuration
+        self._config = self._load_config(config_file)
+        
+        # Initialize projects from config
+        self._initialize_projects()
     
-    def project(self, environment_id: int, return_query: bool = False) -> Project:
-        """Get a project by environment ID."""
+    def _load_config(self, config_file: str) -> Dict[str, Any]:
+        """
+        Load configuration from YAML file.
+        
+        Args:
+            config_file: Path to the YAML config file
+            
+        Returns:
+            Dictionary containing the parsed configuration
+        """
+        if not os.path.exists(config_file):
+            return {"projects": {}}
+            
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+            return config if config else {"projects": {}}
+    
+    def _initialize_projects(self) -> None:
+        """Initialize project instances from the configuration."""
+        if "projects" not in self._config:
+            return
+            
+        for project_name, project_config in self._config["projects"].items():
+            if "prod_env_id" in project_config:
+                env_id = project_config["prod_env_id"]
+                try:
+                    self._projects[project_name] = self.project(env_id)
+                except ValueError:
+                    # Skip if environment doesn't exist or is inaccessible
+                    pass
+    
+    @property
+    def projects(self) -> Dict[str, Project]:
+        """Get all initialized projects."""
+        return self._projects
+    
+    def project(self, environment_id: int, return_query: bool = None) -> Project:
+        """
+        Get a project by environment ID.
+        
+        Args:
+            environment_id: The dbt Cloud environment ID
+            return_query: If True, include the GraphQL query in the response.
+                         Defaults to the API's return_query setting.
+        """
+        # Determine if we should return the query
+        include_query = self.return_query if return_query is None else return_query
+        
         # Validate the environment exists by trying to get metadata
         try:
             self._environment_service.get_environment_metadata(environment_id)
@@ -365,5 +425,5 @@ class DiscoveryAPI:
             environment_id=environment_id,
             environment_service=self._environment_service,
             model_service=self._model_service,
-            return_query=self.return_query
+            return_query=include_query
         )

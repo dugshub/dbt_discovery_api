@@ -1,0 +1,14 @@
+# Project to production environment mappings
+projects:
+  spothero_accounting:
+    prod_env_id: 95718
+    label: "SpotHero Accounting"
+  spothero_parking:
+    prod_env_id: 313394
+    label: "SpotHero Parking Operations"
+  analytics_sandbox:
+    prod_env_id: 304679
+    label: "Analytics Sandbox"
+  analytics_metrics:
+    prod_env_id: 306909
+    label: "Analytics Metrics"

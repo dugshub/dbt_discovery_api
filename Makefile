@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck test test-integration clean fix check-all super super-no-integration
+.PHONY: install lint typecheck test test-integration test-performance clean fix check-all super super-no-integration
 
 install:
 	uv pip install -e .
@@ -24,8 +24,13 @@ test:
 test-integration:
 	pytest -xvs tests/  --run-integration
 
+test-performance:
+	@echo "Running integration tests with detailed performance logging..."
+	pytest -xvs tests/ --run-integration --log-cli-level=DEBUG
+	@echo "Performance logs saved to logs/performance.log"
+
 clean:
-	rm -rf .ruff_cache .mypy_cache .pytest_cache __pycache__ */__pycache__ */*/__pycache__
+	find . -name "__pycache__" -type d -exec rm -rf {} +;
 	rm -rf dist build *.egg-info
 
 all: install lint typecheck test
@@ -38,6 +43,7 @@ help:
 	@echo "  make typecheck        - Run type checking with mypy"
 	@echo "  make test             - Run tests with pytest"
 	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-performance - Run integration tests with detailed performance logging"
 	@echo "  make clean            - Remove cache and build artifacts"
 	@echo "  make all              - Run install, lint, typecheck, and test"
 	@echo "  make check-all        - Run linting and type checking"

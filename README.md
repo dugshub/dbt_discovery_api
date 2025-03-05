@@ -14,6 +14,7 @@ A Python service layer and user-friendly API for interacting with the dbt Cloud 
 - **Computed Properties**: Easy access to derived data that spans multiple service calls
 - **Lazy Loading**: Properties are loaded on-demand for better performance
 - **Optimized Batch Queries**: Uses GraphQL aliasing to fetch multiple models in a single query
+- **Configuration File**: Define projects and environments in a YAML config file
 
 ## Installation
 
@@ -36,7 +37,7 @@ Alternatively, you can pass the token directly when initializing the API.
 ### Using the API Layer (Recommended)
 
 ```python
-from src.api import DiscoveryAPI
+from src.discovery_api.api.api import DiscoveryAPI
 
 # Initialize the API
 api = DiscoveryAPI(token="your_dbt_cloud_token")
@@ -52,6 +53,41 @@ print(f"Adapter type: {metadata.adapter_type}")
 # Get all models
 models = project.get_models()
 print(f"Found {len(models)} models")
+```
+
+### Using a Config File
+
+Create a `config.yml` file in your project root:
+
+```yaml
+# config.yml
+projects:
+  accounting:
+    prod_env_id: 12345
+    label: "Accounting Project"
+  marketing:
+    prod_env_id: 67890
+    label: "Marketing Analytics"
+```
+
+Then access projects automatically:
+
+```python
+from src.discovery_api.api.api import DiscoveryAPI
+
+# Initialize the API with config file (default: config.yml)
+api = DiscoveryAPI(token="your_dbt_cloud_token")
+
+# Access projects defined in config.yml
+for project_name, project in api.projects.items():
+    metadata = project.get_metadata()
+    print(f"{project_name}: {metadata.dbt_project_name}")
+    
+# Access a specific project from config
+if "accounting" in api.projects:
+    accounting = api.projects["accounting"]
+    models = accounting.get_models()
+    print(f"Found {len(models)} models in accounting project")
 
 # Get specific model
 model = project.get_model("my_model")

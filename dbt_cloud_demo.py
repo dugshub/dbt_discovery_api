@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-from typing import Dict, Any
 
 from src.service_api.DbtCloudService import DbtCloudService
 from src.service_api.models import DbtJobsResponse, DbtAccountResponse, DbtJob
