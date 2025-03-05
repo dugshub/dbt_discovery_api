@@ -7,7 +7,7 @@ This demonstrates using the high-level API layer instead of raw GraphQL queries.
 import os
 import json
 import argparse
-from src.api import DiscoveryAPI
+from src.discovery_api.api import DiscoveryAPI
 
 # Get environment and job IDs from environment variables
 sandbox_environment_id = int(os.environ.get('ENV_ID_SANDBOX_PRODUCTION'))

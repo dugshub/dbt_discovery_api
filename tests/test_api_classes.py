@@ -6,8 +6,8 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime
 
-from src.models import Model, ModelHistoricalRun
-from src.api import DiscoveryAPI
+from src.discovery_api.models import ModelHistoricalRun
+from src.discovery_api.api.api import DiscoveryAPI
 
 
 @pytest.fixture
@@ -29,23 +29,28 @@ def mock_model_service():
     """Create a mock ModelService."""
     mock = Mock()
     
-    # Create test models
+    # Create test models using dictionary-like objects instead of MagicMock
+    # to avoid MagicMock returning more MagicMocks when attributes are accessed
+    from types import SimpleNamespace
+    
     test_models = [
-        Model(
+        SimpleNamespace(
             name="model1",
             unique_id="model.test.model1",
             materialized_type="table",
             database="analytics",
-            schema="public",  # Use 'schema' field, not 'db_schema'
-            description="Test model 1"
+            db_schema="public",  # Use 'db_schema' to match the Pydantic model's alias
+            description="Test model 1",
+            tags=[]
         ),
-        Model(
+        SimpleNamespace(
             name="model2",
             unique_id="model.test.model2",
             materialized_type="view",
             database="analytics",
-            schema="public",  # Use 'schema' field, not 'db_schema'
-            description="Test model 2"
+            db_schema="public",  # Use 'db_schema' to match the Pydantic model's alias
+            description="Test model 2",
+            tags=[]
         )
     ]
     
@@ -84,9 +89,9 @@ def mock_model_service():
 @pytest.fixture
 def api_with_mocks(mock_environment_service, mock_model_service):
     """Create a DiscoveryAPI instance with mocked services."""
-    with patch('src.api.api.BaseQuery'), \
-         patch('src.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.api.api.ModelService') as mock_model_service_cls:
+    with patch('src.discovery_api.api.api.BaseQuery'), \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
         
         # Configure mocks to return our pre-configured service mocks
         mock_env_service_cls.return_value = mock_environment_service
@@ -100,9 +105,9 @@ def api_with_mocks(mock_environment_service, mock_model_service):
 @pytest.fixture
 def api_with_return_query(mock_environment_service, mock_model_service):
     """Create a DiscoveryAPI instance with return_query=True."""
-    with patch('src.api.api.BaseQuery'), \
-         patch('src.api.api.EnvironmentService') as mock_env_service_cls, \
-         patch('src.api.api.ModelService') as mock_model_service_cls:
+    with patch('src.discovery_api.api.api.BaseQuery'), \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
         
         # Configure mocks to return our pre-configured service mocks
         mock_env_service_cls.return_value = mock_environment_service
@@ -128,25 +133,25 @@ def project_with_return_query(api_with_return_query):
 def test_api_initialization():
     """Test API initialization with and without token."""
     # Test with explicit token - we only care that the BaseQuery is initialized correctly
-    with patch('src.api.api.BaseQuery') as mock_base_query, \
-         patch('src.api.api.EnvironmentService'), \
-         patch('src.api.api.ModelService'):
+    with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
+         patch('src.discovery_api.api.api.EnvironmentService'), \
+         patch('src.discovery_api.api.api.ModelService'):
         api = DiscoveryAPI(token="test_token")
         mock_base_query.assert_called_once_with("test_token", "https://metadata.cloud.getdbt.com/graphql")
         assert not api.return_query  # Default value
     
     # Test with custom endpoint - we only care that the BaseQuery is initialized correctly
-    with patch('src.api.api.BaseQuery') as mock_base_query, \
-         patch('src.api.api.EnvironmentService'), \
-         patch('src.api.api.ModelService'):
+    with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
         api = DiscoveryAPI(token="test_token", endpoint="https://custom-endpoint.com/graphql")
         mock_base_query.assert_called_once_with("test_token", "https://custom-endpoint.com/graphql")
         assert not api.return_query  # Default value
         
     # Test with return_query=True
-    with patch('src.api.api.BaseQuery') as mock_base_query, \
-         patch('src.api.api.EnvironmentService'), \
-         patch('src.api.api.ModelService'):
+    with patch('src.discovery_api.api.api.BaseQuery') as mock_base_query, \
+         patch('src.discovery_api.api.api.EnvironmentService') as mock_env_service_cls, \
+         patch('src.discovery_api.api.api.ModelService') as mock_model_service_cls:
         api = DiscoveryAPI(token="test_token", return_query=True)
         assert api.return_query
 

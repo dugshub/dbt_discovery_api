@@ -2,8 +2,8 @@ import os
 import pytest
 from typing import Optional
 
-from src.services.EnvironmentService import EnvironmentService
-from src.services.BaseQuery import BaseQuery
+from src.discovery_api.services.EnvironmentService import EnvironmentService
+from src.discovery_api.services.BaseQuery import BaseQuery
 
 
 @pytest.fixture

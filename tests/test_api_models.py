@@ -3,8 +3,8 @@ Tests for API layer Pydantic models.
 """
 
 from datetime import datetime
-from src.models import Model, ModelHistoricalRun
-from src.api import (
+from src.discovery_api.models import Model, ModelHistoricalRun
+from src.discovery_api.api import (
     ModelMetadata, 
     RunStatus, 
     ProjectMetadata,

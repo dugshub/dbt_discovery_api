@@ -6,10 +6,10 @@ Provides intuitive access to dbt Cloud resources without the complexity of Graph
 
 from typing import List, Dict, Optional, Any, cast
 
-from src.services.BaseQuery import BaseQuery
-from src.services.EnvironmentService import EnvironmentService
-from src.services.ModelService import ModelService
-from src.api.models import (
+from src.discovery_api.services.BaseQuery import BaseQuery
+from src.discovery_api.services.EnvironmentService import EnvironmentService
+from src.discovery_api.services.ModelService import ModelService
+from src.discovery_api.api.models import (
     ModelMetadata, 
     RunStatus, 
     ProjectMetadata,

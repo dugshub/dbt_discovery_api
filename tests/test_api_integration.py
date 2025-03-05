@@ -8,7 +8,7 @@ Run with: pytest -xvs tests/test_api_integration.py --run-integration
 import os
 import pytest
 
-from src.api import DiscoveryAPI
+from src.discovery_api.api import DiscoveryAPI
 
 
 # Mark all tests in this file as integration tests

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Dict, Any
 from sgqlc.endpoint.http import HTTPEndpoint
 from sgqlc.operation import Operation
-from src.schema import schema
+from src.discovery_api.schema import schema
 import os
 
 

@@ -6,7 +6,7 @@ This demonstrates using the high-level API layer instead of raw GraphQL queries.
 
 import os
 import json
-from src.api import DiscoveryAPI
+from src.discovery_api.api import DiscoveryAPI
 
 # Utility function for formatted printing
 def print_section(title):

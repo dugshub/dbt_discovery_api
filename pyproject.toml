@@ -6,8 +6,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ipykernel>=6.29.5",
+    "mypy>=1.15.0",
     "pydantic>=2.10.6",
     "pytest>=8.3.5",
+    "ruff>=0.9.9",
     "sgqlc>=16.4",
 ]
 
@@ -48,6 +50,6 @@ ignore_errors = true
 # Ignore errors in models.py related to Pydantic v2 model_config
 [[tool.mypy.overrides]]
 module = [
-    "src.api.models",
+    "src.discovery_api.models",
 ]
 disable_error_code = ["assignment"]

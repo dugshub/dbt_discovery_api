@@ -4,7 +4,14 @@ DBT Discovery API Layer - User-friendly interface to the dbt Cloud API.
 Provides intuitive access to dbt Cloud resources without the complexity of GraphQL.
 """
 
-from src.api.models import (
+from src.discovery_api.api.api import (
+    # API Classes
+    Model,
+    Project,
+    DiscoveryAPI,
+)
+
+from src.discovery_api.api.models import (
     # Common models
     ModelMetadata,
     RunStatus,
@@ -13,13 +20,6 @@ from src.api.models import (
     # Runtime models
     ModelRuntimeMetrics,
     ModelWithRuntime,
-)
-
-from src.api.api import (
-    # API Classes
-    Model,
-    Project,
-    DiscoveryAPI,
 )
 
 __all__ = [
