@@ -4,7 +4,7 @@ projects:
     prod_env_id: 95718
     label: "SpotHero Accounting"
   spothero_parking:
-    prod_env_id: 313394
+    prod_env_id: 258677
     label: "SpotHero Parking Operations"
   analytics_sandbox:
     prod_env_id: 304679

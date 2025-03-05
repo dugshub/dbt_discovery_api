@@ -9,7 +9,11 @@ import time
 
 # Configure logging - use a stream handler to ensure output is visible in pytest
 logger = logging.getLogger("dbt_discovery_api")
-logger.setLevel(logging.DEBUG)
+
+# Get log level from environment variable, default to WARNING if not specified
+log_level_name = os.environ.get("DBT_DISCOVERY_LOG_LEVEL", "WARNING").upper()
+log_level = getattr(logging, log_level_name, logging.WARNING)
+logger.setLevel(log_level)
 
 # Only add handler if it doesn't already have handlers to avoid duplicates
 if not logger.handlers:

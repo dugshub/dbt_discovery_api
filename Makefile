@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck test test-integration test-performance clean fix check-all super super-no-integration
+.PHONY: install lint typecheck test test-debug test-integration test-performance clean fix check-all super super-no-integration
 
 install:
 	uv pip install -e .
@@ -21,6 +21,9 @@ typecheck:
 test:
 	pytest -xvs tests/
 
+test-debug:
+	DBT_DISCOVERY_LOG_LEVEL=DEBUG pytest -xvs tests/ --log-cli-level=DEBUG
+
 test-integration:
 	pytest -xvs tests/  --run-integration
 
@@ -42,6 +45,7 @@ help:
 	@echo "  make fix              - Run linting with ruff and fix issues"
 	@echo "  make typecheck        - Run type checking with mypy"
 	@echo "  make test             - Run tests with pytest"
+	@echo "  make test-debug       - Run tests with DEBUG level logging"
 	@echo "  make test-integration - Run integration tests only"
 	@echo "  make test-performance - Run integration tests with detailed performance logging"
 	@echo "  make clean            - Remove cache and build artifacts"
