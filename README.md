@@ -215,7 +215,34 @@ pytest tests/test_api_models.py tests/test_api_classes.py
 
 # Run integration tests (requires API token)
 pytest tests/test_api_integration.py --run-integration
+
+# Run tests with performance logging
+make test-performance
 ```
+
+### Performance Monitoring
+
+The library includes comprehensive performance logging to help diagnose slow queries:
+
+1. **Detailed Timing**: All GraphQL operations log execution time and HTTP request time
+2. **Slow Query Detection**: Queries taking longer than 1 second are flagged with warnings
+3. **Query Details**: For slow queries, the beginning of the query is logged for easier debugging
+
+To use performance logging in your own code:
+
+```python
+import logging
+
+# Configure logging to see performance metrics
+logging.basicConfig(level=logging.INFO)
+
+# Use the API as normal - performance logs will be output
+api = DiscoveryAPI(token="your_dbt_cloud_token")
+project = api.project(environment_id=123456)
+models = project.get_models()
+```
+
+When running integration tests, performance logs are saved to `logs/performance.log`.
 
 ## API Limitations
 

@@ -41,7 +41,27 @@ pytest -xvs tests/ -m integration --run-integration
 
 # Run integration tests for a specific service
 pytest -xvs tests/query_layer/test_environment_service_integration.py --run-integration
+
+# Run integration tests with performance logging
+make test-performance
 ```
+
+### Performance Testing
+
+To diagnose integration test performance issues, use the `test-performance` make target:
+
+```bash
+make test-performance
+```
+
+This runs the integration tests with detailed performance logging enabled:
+
+- All GraphQL operations are timed and logged
+- Slow queries (>1 second) trigger warning messages with query details
+- HTTP request timing is tracked separately from total execution time
+- Performance logs are displayed in the console and saved to `logs/performance.log`
+
+This helps identify which operations are slowest and may be causing performance bottlenecks in the test suite.
 
 ### Test Filters
 
