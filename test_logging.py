@@ -69,7 +69,7 @@ if models:
 if models and len(models) > 0:
     test_model_name = models[0].name
     print(f"\n=== Testing model detail query for '{test_model_name}' ===")
-    model = test_query(f"Fetching model detail", 
+    model = test_query("Fetching model detail", 
                       model_service.get_model_by_name, 
                       environment_id, test_model_name, state='applied')
     if model:
