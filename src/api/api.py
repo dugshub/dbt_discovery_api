@@ -67,11 +67,12 @@ class Model:
 class Project:
     """Represents a dbt project with access to all resources"""
     
-    def __init__(self, environment_id: int, environment_service: EnvironmentService, model_service: ModelService):
+    def __init__(self, environment_id: int, environment_service: EnvironmentService, model_service: ModelService, return_query: bool = False):
         self.environment_id = environment_id
         self._environment_service = environment_service
         self._model_service = model_service
         self._models_cache: Optional[List[Model]] = None
+        self.return_query = return_query
     
     def get_metadata(self) -> ProjectMetadata:
         """Get project metadata."""
@@ -278,11 +279,22 @@ class Project:
 class DiscoveryAPI:
     """Main entry point for the API layer"""
     
-    def __init__(self, token: Optional[str] = None, endpoint: str = "https://metadata.cloud.getdbt.com/graphql"):
+    def __init__(self, token: Optional[str] = None, endpoint: str = "https://metadata.cloud.getdbt.com/graphql", return_query: bool = False):
+        """
+        Initialize the Discovery API.
+        
+        Args:
+            token: The authentication token for the dbt Cloud API. 
+                  If None, will try to use the DBT_SERVICE_TOKEN environment variable.
+            endpoint: The GraphQL endpoint to use.
+            return_query: If True, all API responses will include the raw GraphQL query that was executed.
+                         This is useful for debugging or understanding the underlying queries.
+        """
         # Initialize service layer components
         base_query = BaseQuery(token, endpoint)
         self._environment_service = EnvironmentService(base_query)
         self._model_service = ModelService(base_query)
+        self.return_query = return_query
     
     def project(self, environment_id: int) -> Project:
         """Get a project by environment ID."""
@@ -296,5 +308,6 @@ class DiscoveryAPI:
         return Project(
             environment_id=environment_id,
             environment_service=self._environment_service,
-            model_service=self._model_service
+            model_service=self._model_service,
+            return_query=self.return_query
         )

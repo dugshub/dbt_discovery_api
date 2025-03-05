@@ -43,28 +43,55 @@ class EnvironmentService:
         definition.resource_counts()
         
     def get_environment_metadata(self, environment_id: int) -> Dict[str, Any]:
-        """Get environment metadata."""
+        """
+        Get environment metadata.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            
+        Returns:
+            Dictionary containing environment metadata
+        """
         op, env = self.base_query.create_environment_query(environment_id)
         self._add_environment_fields(env)
         
         response = self.base_query.execute(op)
         result = response["data"]["environment"]
+            
         return self._convert_keys_to_snake_case(result)
     
     def get_applied_state(self, environment_id: int) -> Dict[str, Any]:
-        """Get the applied state of the environment."""
+        """
+        Get the applied state of the environment.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            
+        Returns:
+            Dictionary containing applied state data
+        """
         op, applied = self.base_query.create_applied_state_query(environment_id)
         self._add_applied_fields(applied)
         
         response = self.base_query.execute(op)
         result = response["data"]["environment"]["applied"]
+            
         return self._convert_keys_to_snake_case(result)
     
     def get_definition_state(self, environment_id: int) -> Dict[str, Any]:
-        """Get the definition state of the environment."""
+        """
+        Get the definition state of the environment.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            
+        Returns:
+            Dictionary containing definition state data
+        """
         op, definition = self.base_query.create_definition_state_query(environment_id)
         self._add_definition_fields(definition)
         
         response = self.base_query.execute(op)
         result = response["data"]["environment"]["definition"]
+            
         return self._convert_keys_to_snake_case(result)

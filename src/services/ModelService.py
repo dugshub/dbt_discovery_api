@@ -229,7 +229,16 @@ class ModelService:
             model_run.skip()
     
     def get_models_applied(self, environment_id: int, limit: int = 300) -> List[Model]:
-        """Get models from the applied state."""
+        """
+        Get models from the applied state.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            limit: Maximum number of models to return
+            
+        Returns:
+            List of Model objects
+        """
         op, applied = self.base_query.create_applied_state_query(environment_id)
         
         # Query models with pagination
@@ -256,7 +265,16 @@ class ModelService:
         return result
     
     def get_models_definition(self, environment_id: int, limit: int = 300) -> List[ModelDefinition]:
-        """Get models from the definition state."""
+        """
+        Get models from the definition state.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            limit: Maximum number of models to return
+            
+        Returns:
+            List of ModelDefinition objects
+        """
         # Create filter for model resources
         resource_filter = DefinitionResourcesFilter(types=["Model"])
         
@@ -288,7 +306,19 @@ class ModelService:
     def get_model_historical_runs(self, environment_id: int, model_name: str, 
                                   last_run_count: int = 10, 
                                   options: Optional[Dict[str, bool]] = None) -> List[ModelHistoricalRun]:
-        """Get historical runs for a specific model."""
+        """
+        Get historical runs for a specific model.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            model_name: The name of the model to query
+            last_run_count: Number of historical runs to fetch
+            options: Query options for field selection
+            return_query: If True, include the GraphQL query in the response
+            
+        Returns:
+            List of ModelHistoricalRun objects
+        """
         op, applied = self.base_query.create_applied_state_query(environment_id)
         
         # Direct query for historical runs (no edges/node pattern)
@@ -339,6 +369,7 @@ class ModelService:
             model_names: List of model names to fetch
             last_run_count: Number of historical runs to fetch for each model
             options: Query options for field selection
+            return_query: If True, include the GraphQL query in the response
             
         Returns:
             Dictionary mapping model names to their historical runs
@@ -402,7 +433,17 @@ class ModelService:
     
     def get_model_by_name(self, environment_id: int, model_name: str, 
                           state: str = "applied") -> Optional[Union[Model, ModelDefinition]]:
-        """Get a specific model by name from either applied or definition state."""
+        """
+        Get a specific model by name from either applied or definition state.
+        
+        Args:
+            environment_id: The ID of the environment to query
+            model_name: The name of the model to query
+            state: The state to query (applied or definition)
+            
+        Returns:
+            Model or ModelDefinition object, or None if not found
+        """
         
         if state.lower() == "applied":
             models = self.get_models_applied(environment_id)

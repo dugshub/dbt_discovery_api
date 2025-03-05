@@ -17,9 +17,27 @@ class BaseQuery:
 
         self.client = HTTPEndpoint(endpoint, {'Authorization': f'Bearer {token}'})
         
-    def execute(self, operation: Operation) -> Dict[str, Any]:
-        """Execute a GraphQL operation and return the response."""
-        return self.client(operation)
+    def execute(self, operation: Operation, return_query: bool = False) -> Dict[str, Any]:
+        """
+        Execute a GraphQL operation and return the response.
+        
+        Args:
+            operation: The GraphQL operation to execute
+            return_query: If True, include the GraphQL query in the response
+            
+        Returns:
+            Dictionary containing the response, with the query included if return_query is True
+        """
+        result = self.client(operation)
+        
+        if return_query:
+            # Create a copy of the result to avoid modifying the original response
+            response_with_query = dict(result)
+            # Add the GraphQL query to the response
+            response_with_query["query"] = str(operation)
+            return response_with_query
+            
+        return result
     
     def create_operation(self) -> Operation:
         """Create a new GraphQL operation."""
