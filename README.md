@@ -91,7 +91,7 @@ model_names = ["model_1", "model_2", "model_3"]
 model_metrics = project.get_historical_models_runtimes(models=model_names)
 ```
 
-### Using the Service Layer (Advanced)
+### Using the Service Layer
 
 ```python
 from src.services.BaseQuery import BaseQuery
