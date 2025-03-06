@@ -15,10 +15,6 @@ A Python service layer and user-friendly API for interacting with the dbt Cloud 
 - **Lazy Loading**: Properties are loaded on-demand for better performance
 - **Optimized Batch Queries**: Uses GraphQL aliasing to fetch multiple models in a single query
 
-## Installation
-
-```bash
-pip install dbt-discovery-api
 ```
 
 ## Authentication
