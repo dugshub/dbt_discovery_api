@@ -1,0 +1,15 @@
+
+# 2025-03-06 00:14:42.327751
++/add sql_gen.py
+
+# 2025-03-06 00:37:30.805425
++/read-only sql_gen.py
+
+# 2025-03-06 00:37:55.119157
++/add redshift_agent.py
+
+# 2025-03-06 00:38:35.094249
++CREATE redshift_agent.py MIRROR sql_gen.py - convert where needed to use Redshift functions. Ensure the agent knows its using redshift. 
+
+# 2025-03-06 00:42:00.562312
++remove all create functionality. Exclusively allow read. The main purpose of this agent is to work alongside the README.md dbt API to help identify redshift performane issues. This one specifically will need to know which redshift tables to look at 
