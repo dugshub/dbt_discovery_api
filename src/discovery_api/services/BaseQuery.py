@@ -59,7 +59,7 @@ class BaseQuery:
             total_execution_time = time.time() - start_time
             
             logger.info(f"GraphQL HTTP request took {http_time:.3f} seconds")
-            logger.info(f"GraphQL execution completed in {total_execution_time:.3f} seconds")
+            logger.info(f"GraphQL execution completed `in {total_execution_time:.3f} seconds")
             
             # Set a reasonable threshold for slow query warnings
             # Adjust this value based on your performance expectations
