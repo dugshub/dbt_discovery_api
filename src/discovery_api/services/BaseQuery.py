@@ -119,6 +119,15 @@ class BaseQuery:
         definition = op.environment(id=environment_id).definition
         logger.debug(f"Definition state query creation completed in {time.time() - start_time:.3f} seconds")
         return op, definition
+        
+    def create_job_query(self, job_id: int) -> Tuple[Operation, Any]:
+        """Create a query for job data."""
+        logger.debug(f"Creating job query for job_id: {job_id}")
+        start_time = time.time()
+        op = self.create_operation()
+        job = op.job(id=job_id)
+        logger.debug(f"Job query creation completed in {time.time() - start_time:.3f} seconds")
+        return op, job
 
     # Utility functions for creating customized queries with the BaseQuery class
     def _add_environment_query(self, op: Operation, environment_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
@@ -132,6 +141,18 @@ class BaseQuery:
         environment = op.environment(**kwargs)
         logger.debug(f"Environment query addition completed in {time.time() - start_time:.3f} seconds")
         return op, environment
+        
+    def _add_job_query(self, op: Operation, job_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
+        """Add job fields to the query."""
+        logger.debug(f"Adding job query for job_id: {job_id}, alias: {alias}")
+        start_time = time.time()
+        # The sgqlc library handles the conversion from int to the appropriate type
+        kwargs: Dict[str, Any] = {"id": job_id}
+        if alias:
+            kwargs["__alias__"] = alias
+        job = op.job(**kwargs)
+        logger.debug(f"Job query addition completed in {time.time() - start_time:.3f} seconds")
+        return op, job
 
     def _add_applied_query(self, op: Operation, environment_id: int, alias: Optional[str] = None) -> Tuple[Operation, Any]:
         """Add applied state fields to the query."""
