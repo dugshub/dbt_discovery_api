@@ -12,3 +12,6 @@ projects:
   analytics_metrics:
     prod_env_id: 306909
     label: "Analytics Metrics"
+  spothero_pipegen:
+    prod_env_id: 337887
+    label: "Analytics Pipegen"
