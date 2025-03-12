@@ -13,6 +13,7 @@ class RunStatus(str, enum.Enum):
     success = "success"
     failure = "failure"
     cancelled = "cancelled" 
+    run_completed_at: datetime
 
 class SearchFilter:
     #when used to fetch models, this filters the models by these properties
@@ -25,10 +26,45 @@ class SearchFilter:
 class ModelFilter(SearchFilter):
     models: Optional[List[Model]] #this is model_object
     model_ids: Optional[List[str]] #this is project_name.model_name
+
+
+class ProjectFilter(SearchFilter):
+    projects: Optional[List[Project]]
+    project_ids: Optional[List[str]]
+    include_or_exclude: Optional[str] = "include"
 ```
 
 Classes:
 ```python
+
+class dbtAccount:
+    environment: ['production','staging']
+    projects: List[Project]
+    filter: Optional[ProjectFilter] = None
+
+    def get_projects(self, filter: ProjectFilter = None) -> List[Project]:
+        pass
+
+    def get_jobs(self, filter: SearchFilter = None) -> List[Job]:
+        # Searches across all projects (unless included_)
+        pass
+
+    def get_models(self, filter: SearchFilter = None) -> List[Model]:
+        # Searches across all projects
+        pass
+
+    def get_runs(self, limit: int = 10, filter: SearchFilter = None) -> List[Run]:
+        # Searches across all projects
+        pass
+        
+    def slowest_models(self, slowest_n: int = 5, last_n_runs: int = 1, filter: SearchFilter = None) -> List[Model]:
+        # Finds slowest models across all projects
+        pass
+        
+    def longest_running_jobs(self, longest_n: int = 5, last_n_runs: int = 1, filter: SearchFilter = None, model_filter: ModelFilter = None) -> List[Job]:
+        # Finds longest running jobs across all projects
+        pass
+
 class Project:
     project_id: str
     models: List[Model]
@@ -36,13 +72,14 @@ class Project:
     model_count: int
     job_count: int
 
-    def get_models(self, **kwargs, filter: SearchFilter = None) -> List[Model]: #Filtering by tags, materialization, runtime, etc. Use kwargs for this unless you have a better solution.
+    def get_models(self, filter: SearchFilter = None) -> List[Model]: #Filtering by tags, materialization, runtime, etc. Use kwargs for this unless you have a better solution.
         pass
 
-    def get_jobs(self, **kwargs, filter: SearchFilter = None) -> List[Job]:
+    def get_jobs(self, filter: SearchFilter = None) -> List[Job]:
         pass
 
-    def slowest_models(self, slowest_n: int = 5, filter: SearchFilter = None) -> List[Model]:
+    def slowest_models(self, slowest_n: int = 5, last_n_runs: int = 1, filter: SearchFilter = None) -> List[Model]:
+        #Finds slowest models across all projects, by default uses last run if last_n_runs > 1 uses historical runs (requiring multiple queries)
         pass
 
     def longest_running_jobs(self, longest_n: int = 5, last_n_runs: int = 1, filter: SearchFilter = None, model_filter: ModelFilter = None) -> List[Job]:
@@ -143,4 +180,32 @@ class Run:
 
     def average_model_runtime(self, slowest_n: int = 5, filter: SearchFilter = None, model_filter: ModelFilter = None) -> float: #calculates the average runtime, allowing it to be filtered to the worst offenders. 
         pass
+```
+
+## Endpoints
+
+```python
+GET /projects
+GET /projects/{project_id}
+GET /projects/{project_id}/models
+GET /projects/{project_id}/jobs
+
+GET /models
+GET /models/{model_id}
+GET /models/{model_id}/runs
+GET /models/{model_id}/jobs
+GET /models/{model_id}/sql
+
+GET /jobs
+GET /jobs/{job_id}
+GET /jobs/{job_id}/models
+GET /jobs/{job_id}/runs
+POST /jobs/{job_id}/run
+POST /jobs/{job_id}/cancel
+
+GET /runs
+GET /runs/{run_id}
+GET /runs/{run_id}/models
+POST /runs/{run_id}/cancel
+
 ```
