@@ -126,7 +126,7 @@ class TestJobService(unittest.TestCase):
         mock_job.run_id.assert_called_once()
 
     def test_add_model_fields(self):
-        """Test _add_model_fields method."""
+        """Test _add_model_fields method with default settings (all fields)."""
         mock_model = MagicMock()
         self.job_service._add_model_fields(mock_model)
         
@@ -157,9 +157,60 @@ class TestJobService(unittest.TestCase):
         # Verify code fields are added
         mock_model.raw_sql.assert_called_once()
         mock_model.compiled_sql.assert_called_once()
+    
+    def test_add_model_fields_with_selective_fields(self):
+        """Test _add_model_fields method with selective field groups."""
+        # Test with only database fields
+        mock_model = MagicMock()
+        self.job_service._add_model_fields(mock_model, include_database=True)
+        
+        # Basic fields should always be included
+        mock_model.name.assert_called_once()
+        mock_model.unique_id.assert_called_once()
+        mock_model.resource_type.assert_called_once()
+        
+        # Database fields should be included
+        mock_model.database.assert_called_once()
+        mock_model.schema.assert_called_once()
+        
+        # Run metadata fields should not be included
+        mock_model.run_id.assert_not_called()
+        mock_model.job_id.assert_not_called()
+        
+        # Code fields should not be included
+        mock_model.raw_sql.assert_not_called()
+        mock_model.compiled_sql.assert_not_called()
+        
+        # Test with only code fields
+        mock_model = MagicMock()
+        self.job_service._add_model_fields(mock_model, include_code=True)
+        
+        # Basic fields should always be included
+        mock_model.name.assert_called_once()
+        mock_model.unique_id.assert_called_once()
+        
+        # Database fields should not be included
+        mock_model.database.assert_not_called()
+        mock_model.schema.assert_not_called()
+        
+        # Code fields should be included
+        mock_model.raw_sql.assert_called_once()
+        mock_model.compiled_sql.assert_called_once()
+        
+        # Test with include_all=True
+        mock_model = MagicMock()
+        self.job_service._add_model_fields(mock_model, include_all=True)
+        
+        # All field groups should be included
+        mock_model.name.assert_called_once()
+        mock_model.database.assert_called_once()
+        mock_model.run_id.assert_called_once()
+        mock_model.execution_time.assert_called_once()
+        mock_model.status.assert_called_once()
+        mock_model.raw_sql.assert_called_once()
 
     def test_add_test_fields(self):
-        """Test _add_test_fields method."""
+        """Test _add_test_fields method with default settings (all fields)."""
         mock_test = MagicMock()
         self.job_service._add_test_fields(mock_test)
         
@@ -187,6 +238,57 @@ class TestJobService(unittest.TestCase):
         # Verify code fields are added
         mock_test.raw_sql.assert_called_once()
         mock_test.compiled_sql.assert_called_once()
+    
+    def test_add_test_fields_with_selective_fields(self):
+        """Test _add_test_fields method with selective field groups."""
+        # Test with only status fields
+        mock_test = MagicMock()
+        self.job_service._add_test_fields(mock_test, include_status=True)
+        
+        # Basic fields should always be included
+        mock_test.name.assert_called_once()
+        mock_test.unique_id.assert_called_once()
+        mock_test.resource_type.assert_called_once()
+        
+        # Status fields should be included
+        mock_test.status.assert_called_once()
+        mock_test.error.assert_called_once()
+        mock_test.fail.assert_called_once()
+        
+        # Run metadata fields should not be included
+        mock_test.run_id.assert_not_called()
+        mock_test.job_id.assert_not_called()
+        
+        # Code fields should not be included
+        mock_test.raw_sql.assert_not_called()
+        mock_test.compiled_sql.assert_not_called()
+        
+        # Test with only timing fields
+        mock_test = MagicMock()
+        self.job_service._add_test_fields(mock_test, include_timing=True)
+        
+        # Basic fields should always be included
+        mock_test.name.assert_called_once()
+        mock_test.unique_id.assert_called_once()
+        
+        # Timing fields should be included
+        mock_test.execution_time.assert_called_once()
+        mock_test.run_elapsed_time.assert_called_once()
+        
+        # Status fields should not be included
+        mock_test.status.assert_not_called()
+        mock_test.error.assert_not_called()
+        
+        # Test with include_all=True
+        mock_test = MagicMock()
+        self.job_service._add_test_fields(mock_test, include_all=True)
+        
+        # All field groups should be included
+        mock_test.name.assert_called_once()
+        mock_test.run_id.assert_called_once()
+        mock_test.execution_time.assert_called_once()
+        mock_test.status.assert_called_once()
+        mock_test.raw_sql.assert_called_once()
 
     def test_get_job_metadata(self):
         """Test get_job_metadata method."""
@@ -236,6 +338,30 @@ class TestJobService(unittest.TestCase):
         self.assertEqual(result["id"], self.test_job_id)
         self.assertEqual(len(result["models"]), 1)
         self.assertEqual(result["models"][0]["unique_id"], self.test_unique_id)
+    
+    def test_get_job_models_with_field_selection(self):
+        """Test get_job_models method with field selection options."""
+        # Configure mock response
+        self.mock_base_query.execute.return_value = self.mock_job_response
+        
+        # Reset mock to clear previous calls
+        self.mock_base_query.reset_mock()
+        self.mock_job.reset_mock()
+        
+        # Call the method with field selection options
+        result = self.job_service.get_job_models(
+            self.test_job_id, 
+            include_database=True, 
+            include_code=True,
+            return_query=True
+        )
+        
+        # Verify method calls
+        self.mock_base_query.create_job_query.assert_called_once_with(self.test_job_id)
+        self.mock_job.models.assert_called_once()
+        
+        # Verify execute was called with return_query=True
+        self.mock_base_query.execute.assert_called_once_with(self.mock_op, return_query=True)
 
     def test_get_job_tests(self):
         """Test get_job_tests method."""
@@ -254,6 +380,30 @@ class TestJobService(unittest.TestCase):
         self.assertEqual(result["id"], self.test_job_id)
         self.assertEqual(len(result["tests"]), 1)
         self.assertEqual(result["tests"][0]["unique_id"], "test.test_project.test_assertion")
+    
+    def test_get_job_tests_with_field_selection(self):
+        """Test get_job_tests method with field selection options."""
+        # Configure mock response
+        self.mock_base_query.execute.return_value = self.mock_job_response
+        
+        # Reset mock to clear previous calls
+        self.mock_base_query.reset_mock()
+        self.mock_job.reset_mock()
+        
+        # Call the method with field selection options
+        result = self.job_service.get_job_tests(
+            self.test_job_id, 
+            include_status=True, 
+            include_timing=True,
+            return_query=True
+        )
+        
+        # Verify method calls
+        self.mock_base_query.create_job_query.assert_called_once_with(self.test_job_id)
+        self.mock_job.tests.assert_called_once()
+        
+        # Verify execute was called with return_query=True
+        self.mock_base_query.execute.assert_called_once_with(self.mock_op, return_query=True)
 
     def test_get_job_model_by_unique_id(self):
         """Test get_job_model_by_unique_id method."""
@@ -367,6 +517,30 @@ class TestJobService(unittest.TestCase):
         self.assertEqual(result["models"][0]["unique_id"], self.test_unique_id)
         self.assertEqual(len(result["tests"]), 1)
         self.assertEqual(result["tests"][0]["unique_id"], "test.test_project.test_assertion")
+    
+    def test_get_job_with_models_and_tests_with_field_selection(self):
+        """Test get_job_with_models_and_tests method with field selection options."""
+        # Configure mock response
+        self.mock_base_query.execute.return_value = self.mock_job_response
+        
+        # Reset mock to clear previous calls
+        self.mock_base_query.reset_mock()
+        self.mock_job.reset_mock()
+        
+        # Call the method with field selection options
+        result = self.job_service.get_job_with_models_and_tests(
+            self.test_job_id, 
+            include_all=True,
+            return_query=True
+        )
+        
+        # Verify method calls
+        self.mock_base_query.create_job_query.assert_called_once_with(self.test_job_id)
+        self.mock_job.models.assert_called_once()
+        self.mock_job.tests.assert_called_once()
+        
+        # Verify execute was called with return_query=True
+        self.mock_base_query.execute.assert_called_once_with(self.mock_op, return_query=True)
 
 
 if __name__ == '__main__':

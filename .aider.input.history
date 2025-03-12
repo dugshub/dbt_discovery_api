@@ -13,3 +13,116 @@
 
 # 2025-03-06 00:42:00.562312
 +remove all create functionality. Exclusively allow read. The main purpose of this agent is to work alongside the README.md dbt API to help identify redshift performane issues. This one specifically will need to know which redshift tables to look at 
+
+# 2025-03-12 15:46:04.227285
++/add src/discovery_api/services/JobService.py
+
+# 2025-03-12 15:46:09.518938
++UPDATE JobService:
++    UPDATE _add_model_fields(), add_test_fields():
++        add kwargs** support:
++            for non Basic information fields, create logic block to optionally add various fields
+
+# 2025-03-12 15:47:22.153929
++/add tests/test_job_service.py
+
+# 2025-03-12 15:47:28.817300
++UPDATE tests accordingly to test new functionality.
+
+# 2025-03-12 15:50:02.569669
++================================================================================================================================================= FAILURES ==================================================================================================================================================
++___________________________________________________________________________________________________________________________________ TestJobService.test_add_model_fields ____________________________________________________________________________________________________________________________________
++
++self = <tests.test_job_service.TestJobService testMethod=test_add_model_fields>
++
++    def test_add_model_fields(self):
++        """Test _add_model_fields method with default settings (all fields)."""
++        mock_model = MagicMock()
++        self.job_service._add_model_fields(mock_model)
++    
++        # Verify basic fields are added
++        mock_model.name.assert_called_once()
++        mock_model.unique_id.assert_called_once()
++        mock_model.description.assert_called_once()
++        mock_model.tags.assert_called_once()
++        mock_model.resource_type.assert_called_once()
++    
++        # Verify database fields are added
++>       mock_model.database.assert_called_once()
++
++tests/test_job_service.py:141: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
++
++self = <MagicMock name='mock.database' id='4360533920'>
++
++    def assert_called_once(self):
++        """assert that the mock was called only once.
++        """
++        if not self.call_count == 1:
++            msg = ("Expected '%s' to have been called once. Called %s times.%s"
++                   % (self._mock_name or 'mock',
++                      self.call_count,
++                      self._calls_repr()))
++>           raise AssertionError(msg)
++E           AssertionError: Expected 'database' to have been called once. Called 0 times.
++
++/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/unittest/mock.py:923: AssertionError
++============================================================================================================================================= warnings summary ==============================================================================================================================================
++.venv/lib/python3.12/site-packages/pydantic/_internal/_fields.py:192
++  /Users/doug/Documents/GitHub/dbt_discovery_api/.venv/lib/python3.12/site-packages/pydantic/_internal/_fields.py:192: UserWarning: Field name "schema" in "ModelMetadata" shadows an attribute in parent "BaseModel"
++    warnings.warn(
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++========================================================================================================================================== short test summary info ==========================================================================================================================================
++FAILED tests/test_job_service.py::TestJobService::test_add_model_fields - AssertionError: Expected 'database' to have been called once. Called 0 times.
++!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !
+
+# 2025-03-12 15:50:57.282508
++/clear
+
+# 2025-03-12 15:51:01.591968
++
++================================================================================================================================================= FAILURES ==================================================================================================================================================
++________________________________________________________________________________________________________________________ TestJobService.test_add_model_fields_with_selective_fields _________________________________________________________________________________________________________________________
++
++self = <tests.test_job_service.TestJobService testMethod=test_add_model_fields_with_selective_fields>
++
++    def test_add_model_fields_with_selective_fields(self):
++        """Test _add_model_fields method with selective field groups."""
++        # Test with only database fields
++        mock_model = MagicMock()
++        self.job_service._add_model_fields(mock_model, include_database=True)
++    
++        # Basic fields should always be included
++        mock_model.name.assert_called_once()
++        mock_model.unique_id.assert_called_once()
++        mock_model.resource_type.assert_called_once()
++    
++        # Database fields should be included
++        mock_model.database.assert_called_once()
++        mock_model.schema.assert_called_once()
++    
++        # Run metadata fields should not be included
++>       mock_model.run_id.assert_not_called()
++
++tests/test_job_service.py:177: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
++
++self = <MagicMock name='mock.run_id' id='4460064992'>
++
++    def assert_not_called(self):
++        """assert that the mock was never called.
++        """
++        if self.call_count != 0:
++            msg = ("Expected '%s' to not have been called. Called %s times.%s"
++                   % (self._mock_name or 'mock',
++                      self.call_count,
++                      self._calls_repr()))
++>           raise AssertionError(msg)
++E           AssertionError: Expected 'run_id' to not have been called. Called 1 times.
++E           Calls: [call()].
++
++/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/unittest/mock.py:905: AssertionError
+
+# 2025-03-12 15:51:47.672531
++/commit
