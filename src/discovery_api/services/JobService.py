@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, List, Optional, cast
+from typing import Dict, Any, Union, List, cast
 import re
 from sgqlc.operation import Operation
 from src.discovery_api.services.BaseQuery import BaseQuery
