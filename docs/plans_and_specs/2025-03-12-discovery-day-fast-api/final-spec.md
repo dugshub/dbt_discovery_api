@@ -505,28 +505,6 @@ sql = model.get_sql()
     - Memory usage remains stable over time (no memory leaks from cache)
     - Application gracefully degrades under high load rather than failing completely
 
-## **Timeline**
-
-- **Phase 1**: Core Models and Caching Infrastructure
-  - Develop base models, filter classes, and caching strategy
-  - Implement unit tests for core components
-
-- **Phase 2**: Core Resource Classes Implementation
-  - Implement Model, Job, Run, and Project classes
-  - Integrate with existing service layer
-  - Add unit tests for core methods
-
-- **Phase 3**: Account and Project Implementation
-  - Implement dbtAccount as main entry point
-  - Add comprehensive integration tests
-  - Implement logging throughout the system
-
-- **Phase 4**: FastAPI Endpoints
-  - Create RESTful endpoints for all resources
-  - Implement proper error handling and status codes
-  - Add authentication middleware
-  - Create documentation using FastAPI's OpenAPI integration
-
 ## **Next Steps After MVP**
 
 1. **Advanced Caching**
@@ -591,19 +569,7 @@ Errors should be categorized and handled appropriately:
 ### **Testing Strategy**
 
 - Unit tests should mock the service layer to focus on API behavior
-- Integration tests should use actual dbt Cloud API responses (recorded or live)
+- Integration tests should use actual dbt Cloud API responses and require --run-integration to run
 - Performance tests should verify caching behavior under load
 - All cache-related code should have specific tests for TTL and invalidation
 
----
-
-### **Template Completion Guide**
-
-When filling in this template:
-1. Replace bracketed text with actual content
-2. Maintain consistent style and formatting
-3. Include comprehensive docstrings and type hints
-4. Focus on interfaces rather than implementations
-5. Ensure all success criteria are measurable
-6. Be explicit about what's in and out of scope
-7. Consider dependencies and their implications
