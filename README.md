@@ -16,10 +16,6 @@ A Python service layer and user-friendly API for interacting with the dbt Cloud 
 - **Optimized Batch Queries**: Uses GraphQL aliasing to fetch multiple models in a single query
 - **Configuration File**: Define projects and environments in a YAML config file
 
-## Installation
-
-```bash
-pip install dbt-discovery-api
 ```
 
 ## Authentication
@@ -131,7 +127,7 @@ model_names = ["model_1", "model_2", "model_3"]
 model_metrics = project.get_historical_models_runtimes(models=model_names)
 ```
 
-### Using the Service Layer (Advanced)
+### Using the Service Layer
 
 ```python
 from src.services.BaseQuery import BaseQuery
