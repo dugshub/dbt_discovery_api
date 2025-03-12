@@ -17,19 +17,29 @@ Create a reporting focused abstraction utilizing the existing dbt_api in /src th
 ### **Directory Structure**
 
 ```
-src/discovery_api/                      # Main package directory
-├── api/                               # Public API layer
-│   ├── __init__.py                   
-│   └── api.py                        # API implementation
-├── models.py                          # Pydantic models (combined)
-├── schema/                            # Query definitions
-│   └── ...                           # Schema-related files
-├── services/                          # Service layer implementations
-│   └── ...                           # Service-specific files
-└── __init__.py                       # Package initialization
-
-src/service_api/                       # Additional service package
-└── ...                               # Service API implementation
+src/[PROJECT_NAME]/
+├── client/
+│   ├── __init__.py
+│   └── [client_implementation].py      # Describe client responsibilities
+├── models/                             # Pydantic models
+│   ├── __init__.py
+│   ├── base.py                         # Base/common models
+│   └── [resource_models].py            # Resource-specific models
+├── queries/                            # GraphQL or other query definitions
+│   ├── __init__.py
+│   └── [resource_queries].py           # Resource-specific queries
+├── services/                           # Service layer implementations
+│   ├── __init__.py
+│   └── [resource_service].py           # Resource-specific services
+├── api/                                # Public API layer
+│   ├── __init__.py                     # Public exports
+│   ├── [context].py                    # API context
+│   └── resources/                      # Resource classes
+│       ├── __init__.py
+│       ├── base.py                     # Base resource class
+│       └── [resource].py               # Resource-specific classes
+└── exceptions.py                       # Custom exception types
+```
 
 [Adjust directory structure based on project needs. Include comments explaining the purpose of each directory and key file.]
 
