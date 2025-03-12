@@ -1,3 +1,6 @@
+#This was done 100% by 'hand' (autocomplete obviously helps). This is the level I get to on my own before getting
+#the ai to help me . he odd question here and there - but AI involvement didn't come until caching in the next design
+#from there, AI 100% to fill out the spec. Minor adjustments made by me
 
 Type:
 ```python
