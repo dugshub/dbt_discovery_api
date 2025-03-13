@@ -42,6 +42,7 @@ src/discovery_api/
 └── exceptions.py                       # Custom exception types (new)
 ```
 
+
 ### **Models**
 ```python
 class RuntimeReport(BaseModel):
@@ -73,7 +74,7 @@ class ModelFilter(SearchFilter):
 
 class ProjectFilter(SearchFilter):
     projects: Optional[List[Project]]
-    project_ids: Optional[List[str]]
+    environment_ids: Optional[List[str]]
     include_or_exclude: Optional[str] = "include"
 ```
 
@@ -109,11 +110,14 @@ class dbtAccount:
         pass
 
 class Project:
-    project_id: str
+    environment_id: str #project_id doesn't really exist - it's the environment_id that collects the artifacts. A project is technically a collection of environments, however we only have 1 enviornment per project.
     models: List[Model]
     jobs: List[Job]
     model_count: int
     job_count: int
+
+    def __init__(self, environment_id: str):
+        pass
 
     def get_models(self, filter: SearchFilter = None) -> List[Model]: #Filtering by tags, materialization, runtime, etc. Use kwargs for this unless you have a better solution.
         pass
