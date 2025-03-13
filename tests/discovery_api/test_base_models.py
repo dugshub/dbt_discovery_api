@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime
-from src.discovery_api.models.base import RuntimeReport, RunStatus
+from src.discovery_api.models import RuntimeReport, RunStatus
 
 
 def test_run_status_enum():

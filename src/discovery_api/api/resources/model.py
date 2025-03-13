@@ -8,6 +8,7 @@ from functools import lru_cache
 from src.discovery_api.models.base import RunStatus
 from src.discovery_api.models.filters import SearchFilter
 from src.discovery_api.api.resources.run import Run
+from src.discovery_api.api.resources.base import BaseResource
 
 if TYPE_CHECKING:
     from src.discovery_api.api.resources.project import Project
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("dbt_discovery_api")
 
 
-class Model:
+class Model(BaseResource):
     """
     Represents a dbt model.
     
@@ -24,14 +25,16 @@ class Model:
     and access SQL definition.
     """
     
+    name: str
+    description: str | None = None
+    
     def __init__(self, model_id: str, 
                 last_run_status: Optional[RunStatus] = None,
                 last_run_runtime: Optional[float] = None,
                 last_run_start_time: Optional[datetime] = None,
                 last_run_end_time: Optional[datetime] = None,
                 tags: Optional[List[str]] = None,
-                materialization: Optional[str] = None,
-                description: Optional[str] = None):
+                materialization: Optional[str] = None):
         """
         Initialize a Model.
         
@@ -43,7 +46,6 @@ class Model:
             last_run_end_time: Optional end time of the last run.
             tags: Optional list of tags.
             materialization: Optional materialization type.
-            description: Optional description.
         """
         self.model_id = model_id
         self.last_run_status = last_run_status
@@ -52,7 +54,6 @@ class Model:
         self.last_run_end_time = last_run_end_time
         self.tags = tags or []
         self.materialization = materialization
-        self.description = description
         
         # Split model_id into project_name and model_name
         parts = model_id.split('.')

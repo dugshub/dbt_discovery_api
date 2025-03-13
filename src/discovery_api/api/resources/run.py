@@ -6,12 +6,13 @@ from functools import lru_cache
 
 from src.discovery_api.services.JobService import JobService
 from src.discovery_api.services.ModelService import ModelService
-from src.discovery_api.models.base import RunStatus
+from src.discovery_api.models import RunStatus
 from src.discovery_api.models.filters import SearchFilter, ModelFilter
+from src.discovery_api.api.resources.base import BaseResource
 from src.discovery_api.api.resources.model import Model
 
 
-class Run:
+class Run(BaseResource):
     """
     Represents a dbt run.
     

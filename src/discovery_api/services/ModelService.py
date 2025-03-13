@@ -1,7 +1,8 @@
 from typing import List, Dict, Optional, Union, Any
 from sgqlc.operation import Operation
 from src.discovery_api.services.BaseQuery import BaseQuery
-from src.discovery_api.models import Model, ModelDefinition, ModelHistoricalRun
+from src.discovery_api.services.models import ModelDefinition, ModelHistoricalRun
+from src.discovery_api.models.resources import Model
 from src.discovery_api.schema.schema import DefinitionResourcesFilter
 
 

@@ -1,13 +1,11 @@
 """Resource implementations for the discovery API."""
 
-from src.discovery_api.api.resources.project import Project
-from src.discovery_api.api.resources.model import Model
-from src.discovery_api.api.resources.job import Job
-from src.discovery_api.api.resources.run import Run
+from .base import BaseResource
+from .model import Model
+from .run import Run
 
 __all__ = [
-    "Project",
-    "Model",
-    "Job",
-    "Run"
+    'BaseResource',
+    'Model',
+    'Run'
 ]
