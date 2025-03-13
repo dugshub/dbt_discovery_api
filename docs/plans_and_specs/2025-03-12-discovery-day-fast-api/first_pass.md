@@ -1,8 +1,5 @@
-#This was done 100% by 'hand' (autocomplete obviously helps). This is the level I get to on my own before getting
-#the ai to help me . he odd question here and there - but AI involvement didn't come until caching in the next design
-#from there, AI 100% to fill out the spec. Minor adjustments made by me
 
-Type:
+Type:make
 ```python
 class RuntimeReport(BaseModel):
     job_id: str
@@ -183,4 +180,59 @@ class Run:
 
     def average_model_runtime(self, slowest_n: int = 5, filter: SearchFilter = None, model_filter: ModelFilter = None) -> float: #calculates the average runtime, allowing it to be filtered to the worst offenders. 
         pass
+```
+
+
+## Example Usage :
+
+- This example shows a simple call to get all models for a job
+- The kwargs can be used to add or remove various fields from the response
+- Other methods behave similarly across all classes
+- This is how the queries within the API layer should be set up using the service classes
+- For queries that retrieve results for multiple models, use batching
+- Tests show in detail how these methods work
+
+```python
+import os
+from src.discovery_api.services import BaseQuery, JobService
+
+env = BaseQuery(token=os.environ.get("DBT_SERVICE_TOKEN"))
+rental_behaviour_job = JobService(env)
+all_models = rental_behaviour_job.get_job_models(job_id=760646)
+
+job_details = rental_behaviour_job.get_job_metadata(job_id=760646)
+
+
+#all_models (truncated)
+{'models': [{'name': 'b2b_facility_contact_mapping',
+   'unique_id': 'model.analytics_sandbox.b2b_facility_contact_mapping',
+   'description': '',
+   'tags': ['adhoc', 'daily'],
+   'resource_type': 'model',
+   'database': 'spotheroprod',
+   'schema': 'analytics_sandbox_adhoc',
+   'alias': 'b2b_facility_contact_mapping',
+   'run_id': 376739307,
+   'job_id': 760646,
+   'invocation_id': 'e174c46b-a06b-4622-8395-12e1e67e6da7',
+   'thread_id': 'Thread-1 (worker)',
+   'run_generated_at': '2025-03-12T10:35:38.459Z',
+   'compile_started_at': '2025-03-12T09:00:34.023Z',
+   'compile_completed_at': '2025-03-12T09:00:34.047Z',
+   'execute_started_at': '2025-03-12T09:00:34.109Z',
+   'execute_completed_at': '2025-03-12T09:00:53.171Z',
+   'execution_time': 19.31550598144531,
+   'run_elapsed_time': 5709.064619541168,
+   'status': 'success',
+   'error': None,
+   'skip': False,
+   'raw_sql': "{{ config(materialized='table',\n        sort_type='compound',\n        sort=['sh_user_id'],\n        dist='sh_user_id', tags=['daily']) }}\n\nSELECT DISTINCT\n    TRY_CAST(shu.id AS INT) AS sh_user_id\n  , TRY_CAST(sa.parking_spot_id AS INT) AS sh_parking_spot_id\n  , sfc.email\n  , ocr.rate_inventory_specialist_c AS sfdc_is_rate_inventory_specialist\n  , sa.spot_admin_id AS sh_spot_admin_id\n  , sfc.id AS sfdc_contact_id\nFROM sh_public.spothero_user shu                                                                    --sh_user\nINNER JOIN sfdc.contact sfc ON shu.id = sfc.unique_user_id_c                                        --sfdc_contact to sh_user\nINNER JOIN sh_public.spot_admin sa ON shu.id = sa.user_id                                           --sh_user LJ to sh_spot_admin\nINNER JOIN sh_public.parking_spot shps ON shps.parking_spot_id = sa.parking_spot_id                 --sh_ps LJ to sh_spot_admin\nINNER JOIN sfdc.opportunity_contact_roles_c ocr ON ocr.contact_c = sfc.id                           --sfdc_ocr to sfdc_contact\nINNER JOIN sfdc.opportunity o ON o.id = ocr.opportunity_c AND o.spot_id_c = shps.parking_spot_id    --sfdc_opp to sfdc_ocr AND sfdc_opp to sh_ps\nWHERE sfc.account_id IS NOT NULL\n  AND shps.status NOT IN ('deleted','archived')\n  AND ocr.rate_inventory_specialist_c IS TRUE\n  AND sa.deleted IS FALSE",
+   'compiled_sql': "\n\nSELECT DISTINCT\n    TRY_CAST(shu.id AS INT) AS sh_user_id\n  , TRY_CAST(sa.parking_spot_id AS INT) AS sh_parking_spot_id\n  , sfc.email\n  , ocr.rate_inventory_specialist_c AS sfdc_is_rate_inventory_specialist\n  , sa.spot_admin_id AS sh_spot_admin_id\n  , sfc.id AS sfdc_contact_id\nFROM sh_public.spothero_user shu                                                                    --sh_user\nINNER JOIN sfdc.contact sfc ON shu.id = sfc.unique_user_id_c                                        --sfdc_contact to sh_user\nINNER JOIN sh_public.spot_admin sa ON shu.id = sa.user_id                                           --sh_user LJ to sh_spot_admin\nINNER JOIN sh_public.parking_spot shps ON shps.parking_spot_id = sa.parking_spot_id                 --sh_ps LJ to sh_spot_admin\nINNER JOIN sfdc.opportunity_contact_roles_c ocr ON ocr.contact_c = sfc.id                           --sfdc_ocr to sfdc_contact\nINNER JOIN sfdc.opportunity o ON o.id = ocr.opportunity_c AND o.spot_id_c = shps.parking_spot_id    --sfdc_opp to sfdc_ocr AND sfdc_opp to sh_ps\nWHERE sfc.account_id IS NOT NULL\n  AND shps.status NOT IN ('deleted','archived')\n  AND ocr.rate_inventory_specialist_c IS TRUE\n  AND sa.deleted IS FALSE",
+   'raw_code': "{{ config(materialized='table',\n        sort_type='compound',\n        sort=['sh_user_id'],\n        dist='sh_user_id', tags=['daily']) }}\n\nSELECT DISTINCT\n    TRY_CAST(shu.id AS INT) AS sh_user_id\n  , TRY_CAST(sa.parking_spot_id AS INT) AS sh_parking_spot_id\n  , sfc.email\n  , ocr.rate_inventory_specialist_c AS sfdc_is_rate_inventory_specialist\n  , sa.spot_admin_id AS sh_spot_admin_id\n  , sfc.id AS sfdc_contact_id\nFROM sh_public.spothero_user shu                                                                    --sh_user\nINNER JOIN sfdc.contact sfc ON shu.id = sfc.unique_user_id_c                                        --sfdc_contact to sh_user\nINNER JOIN sh_public.spot_admin sa ON shu.id = sa.user_id                                           --sh_user LJ to sh_spot_admin\nINNER JOIN sh_public.parking_spot shps ON shps.parking_spot_id = sa.parking_spot_id                 --sh_ps LJ to sh_spot_admin\nINNER JOIN sfdc.opportunity_contact_roles_c ocr ON ocr.contact_c = sfc.id                           --sfdc_ocr to sfdc_contact\nINNER JOIN sfdc.opportunity o ON o.id = ocr.opportunity_c AND o.spot_id_c = shps.parking_spot_id    --sfdc_opp to sfdc_ocr AND sfdc_opp to sh_ps\nWHERE sfc.account_id IS NOT NULL\n  AND shps.status NOT IN ('deleted','archived')\n  AND ocr.rate_inventory_specialist_c IS TRUE\n  AND sa.deleted IS FALSE",
+   'compiled_code': "\n\nSELECT DISTINCT\n    TRY_CAST(shu.id AS INT) AS sh_user_id\n  , TRY_CAST(sa.parking_spot_id AS INT) AS sh_parking_spot_id\n  , sfc.email\n  , ocr.rate_inventory_specialist_c AS sfdc_is_rate_inventory_specialist\n  , sa.spot_admin_id AS sh_spot_admin_id\n  , sfc.id AS sfdc_contact_id\nFROM sh_public.spothero_user shu                                                                    --sh_user\nINNER JOIN sfdc.contact sfc ON shu.id = sfc.unique_user_id_c                                        --sfdc_contact to sh_user\nINNER JOIN sh_public.spot_admin sa ON shu.id = sa.user_id                                           --sh_user LJ to sh_spot_admin\nINNER JOIN sh_public.parking_spot shps ON shps.parking_spot_id = sa.parking_spot_id                 --sh_ps LJ to sh_spot_admin\nINNER JOIN sfdc.opportunity_contact_roles_c ocr ON ocr.contact_c = sfc.id                           --sfdc_ocr to sfdc_contact\nINNER JOIN sfdc.opportunity o ON o.id = ocr.opportunity_c AND o.spot_id_c = shps.parking_spot_id    --sfdc_opp to sfdc_ocr AND sfdc_opp to sh_ps\nWHERE sfc.account_id IS NOT NULL\n  AND shps.status NOT IN ('deleted','archived')\n  AND ocr.rate_inventory_specialist_c IS TRUE\n  AND sa.deleted IS FALSE"},
+    ...
+]}
+
+#job_details 
+{'id': 760646, 'run_id': 376739307}
 ```

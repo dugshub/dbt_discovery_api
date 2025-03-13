@@ -50,9 +50,5 @@ module = [
 ]
 ignore_errors = true
 
-# Ignore errors in models.py related to Pydantic v2 model_config
-[[tool.mypy.overrides]]
-module = [
-    "src.discovery_api.models",
-]
+
 disable_error_code = ["assignment"]
