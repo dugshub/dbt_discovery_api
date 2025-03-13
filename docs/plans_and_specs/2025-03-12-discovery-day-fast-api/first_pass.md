@@ -184,31 +184,3 @@ class Run:
     def average_model_runtime(self, slowest_n: int = 5, filter: SearchFilter = None, model_filter: ModelFilter = None) -> float: #calculates the average runtime, allowing it to be filtered to the worst offenders. 
         pass
 ```
-
-## Endpoints
-
-```python
-GET /projects
-GET /projects/{project_id}
-GET /projects/{project_id}/models
-GET /projects/{project_id}/jobs
-
-GET /models
-GET /models/{model_id}
-GET /models/{model_id}/runs
-GET /models/{model_id}/jobs
-GET /models/{model_id}/sql
-
-GET /jobs
-GET /jobs/{job_id}
-GET /jobs/{job_id}/models
-GET /jobs/{job_id}/runs
-POST /jobs/{job_id}/run
-POST /jobs/{job_id}/cancel
-
-GET /runs
-GET /runs/{run_id}
-GET /runs/{run_id}/models
-POST /runs/{run_id}/cancel
-
-```
