@@ -187,7 +187,7 @@ class Project:
             List of Job objects.
         """
         # TODO: Replace with actual implementation to fetch jobs for the project
-        # src/service_api/DbtCloudService.py can retrieve this informaiton
+        # src/service_api/DbtCloudService.py can retrieve this
         # 
         return []
     

@@ -18,6 +18,7 @@ The API is designed to efficiently handle common dbt reporting needs such as:
 
 ```
 src/discovery_api/
+\
 ├── models/                             # Pydantic models (new)
 │   ├── __init__.py
 │   ├── base.py                         # Base/common models (RuntimeReport, RunStatus) (new)
