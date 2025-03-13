@@ -1,5 +1,48 @@
 
-Type:make
+## **Overview**
+
+Create a new API layer that replaces the previous implementation while maintaining compatibility with the existing service layer (ModelService, JobService). The solution enhances the architecture with
+- A comprehensive object hierarchy (dbtAccount -> Project -> Model/Job -> Run)
+- User-friendly filtering mechanisms
+
+The API is designed to efficiently handle common dbt reporting needs such as:
+- Finding slowest models across projects
+- Identifying longest-running jobs
+- Filtering models by tags, materialization, or runtime
+- Retrieving historical performance metrics
+- Optimizing query performance through intelligent caching
+
+## **Project Structure and Architecture**
+
+### **Directory Structure**
+
+```
+src/discovery_api/
+├── models/                             # Pydantic models (new)
+│   ├── __init__.py
+│   ├── base.py                         # Base/common models (RuntimeReport, RunStatus) (new)
+│   ├── filters.py                      # Filter models (SearchFilter, ModelFilter, ProjectFilter) (new)
+│   └── resources.py                    # Resource models (Model, Job, Project, Run) (new)
+├── services/                           # Existing service layer implementations
+│   ├── __init__.py
+│   ├── BaseQuery.py                    # Base GraphQL query functionality (existing)
+│   ├── EnvironmentService.py           # Environment-related services (existing)
+│   ├── JobService.py                   # Job-related services (existing)
+│   └── ModelService.py                 # Model-related services (existing)
+│   └── models.py                       # Models for the services (existing)
+├── api/                             # New API layer
+│   ├── __init__.py                     # Public exports (new)
+│   ├── dbt_account.py                  # dbtAccount implementation (new)
+│   ├── resources/                      # Resource classes (new)
+│   │   ├── __init__.py
+│   │   ├── project.py                  # Project implementation (new)
+│   │   ├── model.py                    # Model implementation (new)
+│   │   ├── job.py                      # Job implementation (new)
+│   │   └── run.py                      # Run implementation (new)
+└── exceptions.py                       # Custom exception types (new)
+```
+
+### **Models**
 ```python
 class RuntimeReport(BaseModel):
     job_id: str
@@ -87,9 +130,6 @@ class Project:
         #last_n_runs is the number of runs to use for the average, by default looking at the most recent run (likely meaning no additional query is needed as historical runs may require multiple api requests)
         pass
 
-
-
-
 class Model:
     model_id: str #this is project_name.model_name
     last_run_status: RunStatus
@@ -156,8 +196,6 @@ class Job:
         #This is different from the average_model_runtime method, which returns the average runtime of the last N runs
         #This would need to fetch the last N models, calculate the average runtime for each, and return the average of the worst N models.
         pass
-    
-
 
 class Run:
     #Future add - threads that the run uses
